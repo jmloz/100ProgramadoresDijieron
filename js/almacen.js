@@ -1,29 +1,50 @@
 /*
  * ============================================================
- *  ALMACÉN DE PREGUNTAS
- *  Junta las preguntas de preguntas.js con las que el usuario
- *  agrega desde el menú (guardadas en el navegador).
+ *  ALMACENAMIENTO EN EL NAVEGADOR (localStorage)
+ *   - AlmacenPreguntas: preguntas de preguntas.js + las agregadas desde el menú
+ *   - AlmacenConfig:    tiempos, categorías y dificultad
+ *   - AlmacenPartida:   la partida en curso, para continuarla si se cierra el navegador
+ *  Si el navegador bloquea el almacenamiento, el juego sigue funcionando sin guardar.
  * ============================================================
  */
-const AlmacenPreguntas = {
-    CLAVE: "cpd_preguntas_personalizadas",
 
-    personalizadas() {
+/** Lee/escribe JSON en localStorage sin romper el juego si falla. */
+const Guardado = {
+    leer(clave, porDefecto) {
         try {
-            const datos = JSON.parse(localStorage.getItem(this.CLAVE) || "[]");
-            return Array.isArray(datos) ? datos : [];
+            const texto = localStorage.getItem(clave);
+            return texto == null ? porDefecto : JSON.parse(texto);
         } catch {
-            return []; // almacenamiento bloqueado o datos corruptos
+            return porDefecto;
         }
     },
 
-    _guardarLista(lista) {
+    escribir(clave, valor) {
         try {
-            localStorage.setItem(this.CLAVE, JSON.stringify(lista));
+            localStorage.setItem(clave, JSON.stringify(valor));
             return true;
         } catch {
             return false;
         }
+    },
+
+    borrar(clave) {
+        try {
+            localStorage.removeItem(clave);
+        } catch { /* nada que borrar */ }
+    }
+};
+
+const AlmacenPreguntas = {
+    CLAVE: "cpd_preguntas_personalizadas",
+
+    personalizadas() {
+        const datos = Guardado.leer(this.CLAVE, []);
+        return Array.isArray(datos) ? datos : [];
+    },
+
+    _guardarLista(lista) {
+        return Guardado.escribir(this.CLAVE, lista);
     },
 
     /** Agrega una pregunta. Devuelve la lista de errores (vacía si se guardó). */
@@ -64,5 +85,61 @@ const AlmacenPreguntas = {
             if (errores.length) console.warn("Pregunta ignorada:", p && p.pregunta, errores);
             return errores.length === 0;
         });
+    },
+
+    categoriaDe(p) {
+        return (p.categoria && p.categoria.trim()) || CATEGORIA_POR_DEFECTO;
+    },
+
+    /** Lista ordenada de categorías existentes. */
+    categorias() {
+        return [...new Set(this.todas().map(p => this.categoriaDe(p)))].sort((a, b) => a.localeCompare(b, "es"));
+    },
+
+    /**
+     * Preguntas que cumplen el filtro.
+     * @param {string[]|null} categorias null = todas
+     * @param {string} dificultad "todas" o una clave de DIFICULTADES
+     */
+    filtrar(categorias, dificultad) {
+        return this.todas().filter(p =>
+            (!categorias || categorias.includes(this.categoriaDe(p))) &&
+            (dificultad === "todas" || (p.dificultad || "media") === dificultad));
+    }
+};
+
+const AlmacenConfig = {
+    CLAVE: "cpd_config",
+    POR_DEFECTO: Object.freeze({
+        tiempoCara: 10,        // segundos para responder en el cara a cara (0 = sin tiempo)
+        tiempoTurno: 20,       // segundos por respuesta con el control y en el robo
+        categorias: null,      // null = todas
+        dificultad: "todas"
+    }),
+
+    cargar() {
+        const guardada = Guardado.leer(this.CLAVE, {});
+        return { ...this.POR_DEFECTO, ...(guardada && typeof guardada === "object" ? guardada : {}) };
+    },
+
+    guardar(config) {
+        Guardado.escribir(this.CLAVE, config);
+    }
+};
+
+const AlmacenPartida = {
+    CLAVE: "cpd_partida",
+
+    guardar(instantanea) {
+        Guardado.escribir(this.CLAVE, { ...instantanea, guardadaEn: Date.now() });
+    },
+
+    cargar() {
+        const p = Guardado.leer(this.CLAVE, null);
+        return p && p.version === 1 && p.juego ? p : null;
+    },
+
+    borrar() {
+        Guardado.borrar(this.CLAVE);
     }
 };

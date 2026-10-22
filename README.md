@@ -21,6 +21,8 @@ El juego usa **dos ventanas** en la misma computadora (laptop conectada al proye
    una respuesta para aceptarla, o escribir lo que dijo el jugador.
 
 Si el proyector se cierra o se recarga, vuelve a abrirlo con el mismo botón y recupera el estado de la partida.
+Si el que se cierra es el **panel**, la partida se guarda sola: al volver a abrir `index.html` aparece
+**⏯ Continuar partida** en el menú.
 El proyector nunca recibe el texto de las respuestas ocultas, así que no hay forma de "espiarlas".
 
 > Opcional: también puedes servirlo con `python3 -m http.server` y abrir `http://localhost:8000`.
@@ -40,11 +42,40 @@ js/preguntas.js     BANCO DE PREGUNTAS (aquí se agregan preguntas fijas)
 js/validador.js     Normaliza y compara respuestas (acentos, mayúsculas, sinónimos, errores de dedo)
 js/modelos.js       Clases Respuesta, Pregunta y Equipo
 js/juego.js         Clase Juego: reglas y fases de la ronda (sin nada de interfaz)
-js/almacen.js       Preguntas agregadas desde el menú (se guardan en el navegador)
-js/sonidos.js       Efectos de acierto, error, revelar y ganador
+js/almacen.js       Lo que se guarda en el navegador: preguntas agregadas, configuración y partida en curso
+js/sonidos.js       Efectos de acierto, error, revelar, ganador, tic y fin de tiempo
+js/temporizador.js  Cuenta regresiva con pausa (la usa el panel)
+js/editor.js        Pantalla "Agregar pregunta"
 js/admin.js         Panel: conecta los controles con Juego y envía el estado al proyector
 js/proyector.js     Proyector: dibuja el estado que recibe del panel
 ```
+
+## Configurar la partida
+
+Al presionar **▶ Jugar** se eligen:
+
+- **Nombres de los equipos.**
+- **Tiempo para responder** en el cara a cara y en los turnos/robo (0 = sin tiempo). Si se acaba, cuenta
+  como error. El tiempo se ve en ambas ventanas, suena un tic en los últimos 5 segundos y se pausa solo
+  mientras el moderador decide una respuesta dudosa.
+- **Categorías** (Programación, Lenguajes, Vida estudiantil, Cultura dev y las que agregues) y **dificultad**.
+  El juego avisa si con ese filtro no alcanzan las 4 preguntas de una partida.
+
+La configuración se recuerda para la siguiente vez.
+
+## Atajos de teclado del panel
+
+| Tecla | Acción |
+|-------|--------|
+| `1` – `8` | Aceptar la respuesta con ese número |
+| `X` | Marcar error |
+| `T` / `Enter` | Escribir lo que dijo el jugador (`Esc` para volver a los atajos) |
+| `←` / `→` | Cara a cara: quién presionó primero |
+| `J` / `P` | Jugar o pasar |
+| `R` | Revelar las respuestas restantes al final de la ronda |
+| `Enter` | Siguiente ronda |
+| `Espacio` | Pausar o reanudar el tiempo |
+| `Ctrl` + `Z` | **Deshacer** la última acción (hasta 100 pasos) |
 
 ## Reglas implementadas
 
@@ -55,6 +86,7 @@ js/proyector.js     Proyector: dibuja el estado que recibe del panel
 - El ganador decide **jugar o pasar**.
 - Cada acierto suma al banco. Con **3 errores** el otro equipo tiene **una** oportunidad de robar.
 - Una respuesta que ya está en el tablero no cuenta como error.
+- Si se acaba el tiempo para responder, cuenta como error.
 
 ## Validación de respuestas
 
@@ -76,6 +108,8 @@ js/proyector.js     Proyector: dibuja el estado que recibe del panel
 
 ```js
     {
+        categoria: "Programación",
+        dificultad: "media",
         pregunta: "Algo que se rompe un viernes a las 5 de la tarde",
         respuestas: [
             { texto: "Producción", puntos: 40, alias: ["prod", "el servidor de produccion"] },
@@ -87,6 +121,7 @@ js/proyector.js     Proyector: dibuja el estado que recibe del panel
     },
 ```
 
-Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. El orden no importa
+Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. `categoria` es libre (si la omites
+queda en "General") y `dificultad` puede ser `"facil"`, `"media"` o `"dificil"` (por defecto `"media"`). El orden no importa
 (el juego las ordena por puntaje). Si una pregunta tiene errores, el juego la ignora y lo avisa en la
 consola del navegador (F12).

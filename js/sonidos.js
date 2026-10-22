@@ -57,6 +57,17 @@ const Sonidos = {
         notas.forEach((f, i) => this._nota(f, i * 0.16, 0.3, "triangle", 0.3));
     },
 
+    /** Tic de los últimos segundos del temporizador. */
+    tic() {
+        this._nota(1000, 0, 0.05, "square", 0.08);
+    },
+
+    /** Chicharra de "¡se acabó el tiempo!". */
+    tiempo() {
+        this._nota(220, 0, 0.25, "square", 0.25);
+        this._nota(220, 0.3, 0.5, "square", 0.25);
+    },
+
     alternar() {
         this.activo = !this.activo;
         return this.activo;

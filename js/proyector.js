@@ -43,6 +43,7 @@ const Proyector = {
         this.dibujarTablero(e);
 
         $("errores").querySelectorAll(".x").forEach((x, i) => x.classList.toggle("activa", i < e.errores));
+        this.dibujarReloj(e.tiempo);
 
         const turno = $("turno");
         turno.replaceChildren(el("div", { clase: "turno-principal", texto: e.turno }));
@@ -76,6 +77,17 @@ const Proyector = {
             );
             return casilla;
         }));
+    },
+
+    /** Cuenta regresiva: un círculo que se vacía; rojo en los últimos 5 segundos. */
+    dibujarReloj(t) {
+        const nodo = $("reloj");
+        nodo.hidden = !t;
+        if (!t) return;
+        nodo.textContent = t.pausado ? `⏸ ${t.restante}` : String(t.restante);
+        nodo.style.setProperty("--avance", `${(t.restante / t.total) * 100}%`);
+        nodo.classList.toggle("urgente", t.restante <= 5);
+        nodo.classList.toggle("pausado", t.pausado);
     },
 
     dibujarFinal(e) {

@@ -27,11 +27,13 @@ const Modal = {
             })
         ));
         $("modal").hidden = false;
+        UI.pausarPorModal();
         cont.querySelector("button")?.focus();
     },
 
     cerrar() {
         $("modal").hidden = true;
+        UI.reanudarTrasModal();
     },
 
     get abierto() {
@@ -43,20 +45,35 @@ const Modal = {
  *  CONTROLADOR DE LA PARTIDA
  * ============================================================ */
 
+const MAX_HISTORIAL = 100;
+
 const UI = {
     juego: null,
-    nombres: ["Equipo A", "Equipo B"],
+    config: AlmacenConfig.cargar(),
     aviso: "",                 // mensaje temporal (acierto, error, robo...)
     mostrarRestantes: false,   // al final de la ronda: destapar lo que nadie dijo
     efecto: null,              // efecto para el proyector en el próximo envío (ej. X grande)
+    historial: [],             // instantáneas para "deshacer"
+    escribiendo: false,        // el moderador está usando la caja de texto
+    temporizador: null,
+    pausadoPorModal: false,
+    ultimoTic: null,
+
+    iniciar() {
+        this.temporizador = new Temporizador(() => this.alCambiarReloj(), () => this.alTerminarTiempo());
+    },
 
     iniciarPartida() {
+        const banco = AlmacenPreguntas.filtrar(this.config.categorias, this.config.dificultad);
         try {
-            this.juego = new Juego(this.nombres[0], this.nombres[1], AlmacenPreguntas.todas());
+            this.juego = new Juego(this.config.nombres[0], this.config.nombres[1], banco);
         } catch (e) {
             Modal.abrir("No se puede iniciar", e.message, [{ texto: "Aceptar" }]);
             return;
         }
+        this.historial = [];
+        this.escribiendo = false;
+        this.temporizador.detener();
         this._nuevaRonda();
         mostrarPantalla("juego");
         this.dibujar();
@@ -71,7 +88,133 @@ const UI = {
         return this.juego.equipos[indice].nombre;
     },
 
-    /** Mensaje de turno: se muestra igual en el panel y en el proyector. */
+    /* ---------- Instantáneas: deshacer y continuar partida ---------- */
+
+    instantanea() {
+        return {
+            version: 1,
+            config: this.config,
+            juego: this.juego.exportar(),
+            aviso: this.aviso,
+            mostrarRestantes: this.mostrarRestantes
+        };
+    },
+
+    restaurar(inst) {
+        this.juego = Juego.importar(inst.juego);
+        this.config = { ...this.config, ...inst.config };
+        this.aviso = inst.aviso || "";
+        this.mostrarRestantes = !!inst.mostrarRestantes;
+        this.temporizador.detener();
+    },
+
+    /** Guarda el estado actual antes de una acción, para poder deshacerla. */
+    recordar() {
+        this.historial.push(JSON.stringify(this.instantanea()));
+        if (this.historial.length > MAX_HISTORIAL) this.historial.shift();
+    },
+
+    deshacer() {
+        if (!this.juego) return;
+        const previa = this.historial.pop();
+        if (!previa) {
+            this.aviso = "No hay nada que deshacer.";
+        } else {
+            this.restaurar(JSON.parse(previa));
+            this.aviso = "↶ Se deshizo la última acción.";
+            if (this.juego.fase !== FASES.FIN_JUEGO) mostrarPantalla("juego");
+        }
+        this.dibujar();
+    },
+
+    /** Partida en curso -> localStorage, para "Continuar partida". */
+    persistir() {
+        if (this.juego) AlmacenPartida.guardar(this.instantanea());
+    },
+
+    /** Ejecuta una acción del juego (deshacible) y vuelve a dibujar. */
+    accion(fn) {
+        this.recordar();
+        try {
+            this.aviso = "";
+            fn();
+        } catch (e) {
+            this.historial.pop();
+            this.aviso = `⚠ ${e.message}`;
+        }
+        this.dibujar();
+    },
+
+    /* ---------- Temporizador ---------- */
+
+    /** Arranca, reinicia o detiene el tiempo según quién debe responder. */
+    sincronizarTemporizador() {
+        const j = this.juego;
+        if (!j.aceptaRespuestas) {
+            this.temporizador.detener();
+            return;
+        }
+        const reveladas = j.pregunta.respuestas.filter(r => r.revelada).length;
+        const clave = `${j.rondaActual}|${j.fase}|${j.equipoEnTurno}|${reveladas}|${j.errores}`;
+        if (this.temporizador.clave === clave) return;
+        const segundos = j.fase === FASES.CARA_A_CARA ? this.config.tiempoCara : this.config.tiempoTurno;
+        this.ultimoTic = null;
+        this.temporizador.iniciar(segundos, clave);
+        if (Modal.abierto) {
+            this.temporizador.pausar();
+            this.pausadoPorModal = true;
+        }
+    },
+
+    alCambiarReloj() {
+        const v = this.temporizador.vista;
+        if (v && !v.pausado && v.restante > 0 && v.restante <= 5 && v.restante !== this.ultimoTic) {
+            this.ultimoTic = v.restante;
+            Sonidos.tic();
+        }
+        this.dibujarReloj();
+        this.publicar();
+    },
+
+    alTerminarTiempo() {
+        if (!this.juego || !this.juego.aceptaRespuestas) return;
+        Sonidos.tiempo();
+        this.aplicar(null, "⏰ ¡Se acabó el tiempo! ");
+    },
+
+    alternarPausa() {
+        if (!this.temporizador.activo) return;
+        this.temporizador.alternar();
+    },
+
+    pausarPorModal() {
+        if (this.temporizador && this.temporizador.activo && !this.temporizador.pausado) {
+            this.temporizador.pausar();
+            this.pausadoPorModal = true;
+        }
+    },
+
+    reanudarTrasModal() {
+        if (this.pausadoPorModal) {
+            this.pausadoPorModal = false;
+            this.temporizador.reanudar();
+        }
+    },
+
+    dibujarReloj() {
+        const nodo = $("reloj-juego");
+        const v = this.temporizador.vista;
+        nodo.hidden = !v;
+        if (!v) return;
+        nodo.textContent = v.pausado ? `⏸ ${v.restante}` : String(v.restante);
+        nodo.style.setProperty("--avance", `${(v.restante / v.total) * 100}%`);
+        nodo.classList.toggle("urgente", v.restante <= 5);
+        nodo.classList.toggle("pausado", v.pausado);
+        nodo.title = v.pausado ? "Tiempo en pausa (Espacio para reanudar)" : "Segundos para responder";
+    },
+
+    /* ---------- Textos compartidos con el proyector ---------- */
+
     textoTurno() {
         const j = this.juego;
         const turno = j.equipoEnTurno;
@@ -118,17 +261,22 @@ const UI = {
         turno.replaceChildren(el("div", { clase: "turno-principal", texto: this.textoTurno() }));
         if (this.aviso) turno.append(el("div", { clase: "aviso", texto: this.aviso }));
 
+        document.querySelectorAll('[data-accion="deshacer"]').forEach(b => { b.disabled = this.historial.length === 0; });
+
         this.dibujarTarjeta();
         this.dibujarControles();
+        this.sincronizarTemporizador();
+        this.dibujarReloj();
         this.publicar();
+        this.persistir();
     },
 
-    /** Tarjeta privada del moderador: todas las respuestas; clic para aceptar una. */
+    /** Tarjeta privada del moderador: todas las respuestas; clic o número para aceptar una. */
     dibujarTarjeta() {
         const j = this.juego;
         const clicable = j.aceptaRespuestas;
         $("ayuda-tarjeta").textContent = clicable
-            ? "Haz clic en una respuesta para aceptarla."
+            ? "Haz clic en una respuesta o presiona su número para aceptarla."
             : "Las respuestas se aceptan cuando un equipo está respondiendo.";
         $("tarjeta-respuestas").replaceChildren(...j.pregunta.respuestas.map((r, i) => {
             const item = el("li", { clase: "item-tarjeta" + (r.revelada ? " revelada" : "") },
@@ -140,15 +288,17 @@ const UI = {
             );
             if (clicable && !r.revelada) {
                 item.classList.add("clicable");
-                item.tabIndex = 0;
-                item.title = "Aceptar esta respuesta";
+                item.title = `Aceptar esta respuesta (tecla ${i + 1})`;
                 item.addEventListener("click", () => this.aplicar(r));
-                item.addEventListener("keydown", ev => {
-                    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.aplicar(r); }
-                });
             }
             return item;
         }));
+    },
+
+    /** Botón con su atajo de teclado visible. */
+    _boton(texto, tecla, clase, onclick, extra = {}) {
+        return el("button", { clase: `btn ${clase}`, type: "button", onclick, ...extra },
+            texto, tecla ? el("kbd", { texto: tecla }) : null);
     },
 
     dibujarControles() {
@@ -160,10 +310,8 @@ const UI = {
             cont.append(
                 el("p", { texto: "¿Quién presionó el botón primero?" }),
                 el("div", { clase: "fila-botones" },
-                    [0, 1].map(i => el("button", {
-                        clase: "btn btn-grande", texto: this.nombre(i),
-                        onclick: () => this.accion(() => j.elegirPrimero(i))
-                    })))
+                    this._boton(this.nombre(0), "←", "btn-grande", () => this.accion(() => j.elegirPrimero(0))),
+                    this._boton(this.nombre(1), "→", "btn-grande", () => this.accion(() => j.elegirPrimero(1))))
             );
             return;
         }
@@ -172,8 +320,8 @@ const UI = {
             cont.append(
                 el("p", { texto: `¿${this.nombre(j.equipoControl)} juega o pasa?` }),
                 el("div", { clase: "fila-botones" },
-                    el("button", { clase: "btn btn-grande", texto: "▶ Jugar", onclick: () => this.accion(() => j.decidir(true)) }),
-                    el("button", { clase: "btn btn-grande btn-secundario", texto: "↪ Pasar", onclick: () => this.accion(() => j.decidir(false)) }))
+                    this._boton("▶ Jugar", "J", "btn-grande", () => this.accion(() => j.decidir(true))),
+                    this._boton("↪ Pasar", "P", "btn-grande btn-secundario", () => this.accion(() => j.decidir(false))))
             );
             return;
         }
@@ -181,16 +329,11 @@ const UI = {
         if (j.fase === FASES.FIN_RONDA) {
             const botones = el("div", { clase: "fila-botones" });
             if (!this.mostrarRestantes && j.pregunta.pendientes.length > 0) {
-                botones.append(el("button", {
-                    clase: "btn btn-secundario", texto: "👁 Revelar restantes en el proyector",
-                    onclick: () => { this.mostrarRestantes = true; Sonidos.revelar(); this.dibujar(); }
-                }));
+                botones.append(this._boton("👁 Revelar restantes", "R", "btn-secundario", () => this.revelarRestantes()));
             }
-            botones.append(el("button", {
-                clase: "btn btn-grande",
-                texto: j.esUltimaRonda ? "🏆 Ver resultados" : (j.rondaActual + 1 === j.totalRondas ? "▶ ¡Ronda final!" : "▶ Siguiente ronda"),
-                onclick: () => { j.siguienteRonda(); this._nuevaRonda(); this.dibujar(); }
-            }));
+            const texto = j.esUltimaRonda ? "🏆 Ver resultados"
+                : (j.rondaActual + 1 === j.totalRondas ? "▶ ¡Ronda final!" : "▶ Siguiente ronda");
+            botones.append(this._boton(texto, "Enter", "btn-grande", () => this.siguienteRonda()));
             cont.append(botones);
             return;
         }
@@ -198,34 +341,36 @@ const UI = {
         // CARA_A_CARA, JUGANDO o ROBO: caja para escribir la respuesta
         const entrada = el("input", {
             id: "entrada-respuesta", maxlength: "80", autocomplete: "off",
-            placeholder: "Escribe lo que dijo el jugador y presiona Enter"
+            placeholder: "Presiona T para escribir lo que dijo el jugador"
         });
-        const errorTexto = j.fase === FASES.ROBO ? "✕ Falló el robo" : "✕ Error";
+        entrada.addEventListener("focus", () => { this.escribiendo = true; });
         const form = el("form", { clase: "form-respuesta" },
             entrada,
             el("button", { clase: "btn", type: "submit", texto: "Responder" }),
-            el("button", {
-                clase: "btn btn-error", type: "button", texto: errorTexto,
-                title: "Error directo: no contestó, se acabó el tiempo, etc.",
-                onclick: () => this.aplicar(null)
-            })
+            this._boton(j.fase === FASES.ROBO ? "✕ Falló el robo" : "✕ Error", "X", "btn-error",
+                () => this.aplicar(null), { title: "Error directo: no contestó, respuesta incorrecta, etc." })
         );
         form.addEventListener("submit", ev => {
             ev.preventDefault();
             this.procesarEntrada(entrada.value);
         });
         cont.append(form);
-        if (!Modal.abierto) entrada.focus();
+        if (this.escribiendo && !Modal.abierto) entrada.focus();
     },
 
-    /** Ejecuta una acción del juego y vuelve a dibujar, mostrando cualquier error. */
-    accion(fn) {
-        try {
-            this.aviso = "";
-            fn();
-        } catch (e) {
-            this.aviso = `⚠ ${e.message}`;
-        }
+    revelarRestantes() {
+        if (this.juego.fase !== FASES.FIN_RONDA || this.mostrarRestantes) return;
+        this.recordar();
+        this.mostrarRestantes = true;
+        Sonidos.revelar();
+        this.dibujar();
+    },
+
+    siguienteRonda() {
+        if (this.juego.fase !== FASES.FIN_RONDA) return;
+        this.recordar();
+        this.juego.siguienteRonda();
+        this._nuevaRonda(); // antes de dibujar, para no destapar el tablero nuevo
         this.dibujar();
     },
 
@@ -235,9 +380,7 @@ const UI = {
     estadoProyector() {
         const j = this.juego;
         const enPartida = ["pantalla-juego", "pantalla-final"].some(id => $(id).classList.contains("activa"));
-        if (!j || !enPartida) {
-            return { pantalla: "espera" };
-        }
+        if (!j || !enPartida) return { pantalla: "espera" };
         if (j.fase === FASES.FIN_JUEGO) {
             const ganador = j.ganador;
             return {
@@ -263,6 +406,7 @@ const UI = {
                     : { visible: false };
             }),
             errores: j.errores,
+            tiempo: this.temporizador.vista,
             turno: this.textoTurno(),
             aviso: this.aviso
         };
@@ -328,15 +472,20 @@ const UI = {
         );
     },
 
-    /** Manda la respuesta (o null = error) al juego y reacciona al resultado. */
-    aplicar(respuesta) {
+    /**
+     * Manda la respuesta (o null = error) al juego y reacciona al resultado.
+     * @param {string} prefijo texto antes del aviso (ej. "se acabó el tiempo")
+     */
+    aplicar(respuesta, prefijo = "") {
         const j = this.juego;
         if (!j.aceptaRespuestas) return;
+        this.recordar();
         const r = j.responder(respuesta);
         const n = r.equipo != null ? this.nombre(r.equipo) : "";
 
         switch (r.tipo) {
             case "repetida":
+                this.historial.pop(); // no cambió nada: no hay que deshacerlo
                 this.aviso = `«${r.respuesta.texto}» ya está en el tablero. Intenta otra.`;
                 break;
             case "acierto":
@@ -370,7 +519,72 @@ const UI = {
                 this.aviso = `✕ Robo fallido: el banco es para ${this.nombre(r.ganador)}`;
                 break;
         }
+        this.aviso = prefijo + this.aviso;
         this.dibujar();
+    },
+
+    /* ---------- Atajos de teclado ---------- */
+
+    alPresionarTecla(ev) {
+        if (Modal.abierto || !this.juego) return;
+        const enJuego = $("pantalla-juego").classList.contains("activa");
+        const enFinal = $("pantalla-final").classList.contains("activa");
+        if (!enJuego && !enFinal) return;
+
+        const objetivo = ev.target;
+        const tecla = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+
+        // Dentro de la caja de texto solo nos importa Esc (para volver a los atajos)
+        if (objetivo.matches("input, textarea, select")) {
+            if (tecla === "Escape") {
+                this.escribiendo = false;
+                objetivo.blur();
+            }
+            return;
+        }
+
+        if ((ev.ctrlKey || ev.metaKey) && tecla === "z") {
+            ev.preventDefault();
+            this.deshacer();
+            return;
+        }
+        if (ev.ctrlKey || ev.metaKey || ev.altKey || !enJuego) return;
+        // Enter/Espacio sobre un botón con foco: dejar que el navegador lo active
+        if (objetivo.matches("button, summary") && (tecla === "Enter" || tecla === " ")) return;
+
+        const j = this.juego;
+        const manejar = fn => { ev.preventDefault(); fn(); };
+
+        if (tecla === " ") return manejar(() => this.alternarPausa());
+
+        switch (j.fase) {
+            case FASES.ELEGIR_PRIMERO:
+                if (tecla === "ArrowLeft") return manejar(() => this.accion(() => j.elegirPrimero(0)));
+                if (tecla === "ArrowRight") return manejar(() => this.accion(() => j.elegirPrimero(1)));
+                break;
+            case FASES.DECISION:
+                if (tecla === "j") return manejar(() => this.accion(() => j.decidir(true)));
+                if (tecla === "p") return manejar(() => this.accion(() => j.decidir(false)));
+                break;
+            case FASES.FIN_RONDA:
+                if (tecla === "r") return manejar(() => this.revelarRestantes());
+                if (tecla === "Enter") return manejar(() => this.siguienteRonda());
+                break;
+            case FASES.CARA_A_CARA:
+            case FASES.JUGANDO:
+            case FASES.ROBO: {
+                if (/^[1-8]$/.test(tecla)) {
+                    const r = j.pregunta.respuestas[Number(tecla) - 1];
+                    if (r) return manejar(() => this.aplicar(r));
+                    return;
+                }
+                if (tecla === "x") return manejar(() => this.aplicar(null));
+                if (tecla === "t" || tecla === "Enter") {
+                    return manejar(() => { this.escribiendo = true; $("entrada-respuesta")?.focus(); });
+                }
+                break;
+            }
+        }
     },
 
     /* ---------- Pantalla final ---------- */
@@ -378,137 +592,86 @@ const UI = {
     mostrarFinal() {
         const j = this.juego;
         const ganador = j.ganador;
+        this.temporizador.detener();
         $("final-ganador").textContent = ganador ? ganador.nombre : "¡EMPATE!";
         $("final-marcador").replaceChildren(...[...j.equipos]
             .sort((a, b) => b.puntos - a.puntos)
             .map(eq => el("div", { clase: "final-fila" + (eq === ganador ? " ganador" : "") },
                 el("span", { texto: eq.nombre }),
                 el("strong", { texto: String(eq.puntos) }))));
-        lanzarConfeti($("confeti"));
+        const yaEstaba = $("pantalla-final").classList.contains("activa");
+        if (!yaEstaba) {
+            lanzarConfeti($("confeti"));
+            Sonidos.ganador();
+        }
         mostrarPantalla("final");
         this.publicar();
-        Sonidos.ganador();
+        this.persistir();
     }
 };
 
 /* ============================================================
- *  PANTALLA "AGREGAR PREGUNTA"
+ *  PANTALLA DE CONFIGURACIÓN
  * ============================================================ */
 
-const Editor = {
-    iniciar() {
-        const filas = $("filas-respuestas");
-        for (let i = 1; i <= MAX_RESPUESTAS; i++) {
-            const opcional = i > MIN_RESPUESTAS;
-            filas.append(el("div", { clase: "fila-respuesta" },
-                el("span", { clase: "num", texto: String(i) }),
-                el("input", { clase: "r-texto", maxlength: "50", placeholder: opcional ? "(opcional)" : "Respuesta" }),
-                el("input", { clase: "r-puntos", type: "number", min: "1", max: "100", step: "1", placeholder: "pts" }),
-                el("input", { clase: "r-alias", maxlength: "200", placeholder: "sinónimo1, sinónimo2" })
-            ));
-        }
-        filas.addEventListener("input", () => this.actualizarSuma());
-        $("form-agregar").addEventListener("submit", ev => { ev.preventDefault(); this.guardar(); });
-        $("btn-exportar").addEventListener("click", () => this.exportar());
-        $("input-importar").addEventListener("change", ev => this.importar(ev.target));
-    },
-
+const Configuracion = {
     abrir() {
-        $("error-agregar").textContent = "";
-        $("ok-agregar").textContent = "";
-        this.dibujarLista();
-        irA("agregar");
-        $("nueva-pregunta").focus();
+        const c = UI.config;
+        $("error-config").textContent = "";
+        $("nombre-a").value = c.nombres ? c.nombres[0] : "";
+        $("nombre-b").value = c.nombres ? c.nombres[1] : "";
+        $("tiempo-cara").value = c.tiempoCara;
+        $("tiempo-turno").value = c.tiempoTurno;
+        $("dificultad").value = c.dificultad;
+
+        $("lista-categorias").replaceChildren(...AlmacenPreguntas.categorias().map(cat =>
+            el("label", { clase: "check" },
+                Object.assign(el("input", { type: "checkbox", value: cat }),
+                    { checked: !c.categorias || c.categorias.includes(cat) }),
+                cat)));
+        this.actualizarConteo();
+        mostrarPantalla("config");
+        $("nombre-a").focus();
     },
 
-    leerFormulario() {
-        const respuestas = [];
-        document.querySelectorAll(".fila-respuesta").forEach(fila => {
-            const texto = fila.querySelector(".r-texto").value.trim();
-            const puntosTxt = fila.querySelector(".r-puntos").value.trim();
-            if (!texto && !puntosTxt) return; // fila vacía
-            respuestas.push({
-                texto,
-                puntos: Number(puntosTxt),
-                alias: fila.querySelector(".r-alias").value.split(",").map(a => a.trim()).filter(Boolean)
-            });
-        });
-        return { pregunta: $("nueva-pregunta").value.trim(), respuestas };
+    categoriasMarcadas() {
+        return [...document.querySelectorAll("#lista-categorias input:checked")].map(i => i.value);
     },
 
-    actualizarSuma() {
-        const suma = this.leerFormulario().respuestas.reduce((s, r) => s + (Number.isFinite(r.puntos) ? r.puntos : 0), 0);
-        const nodo = $("suma-puntos");
-        nodo.textContent = suma;
-        nodo.classList.toggle("excedido", suma > MAX_PUNTOS_PREGUNTA);
+    actualizarConteo() {
+        const n = AlmacenPreguntas.filtrar(this.categoriasMarcadas(), $("dificultad").value).length;
+        const nodo = $("conteo-filtro");
+        nodo.textContent = `${n} pregunta(s) disponibles · se necesitan al menos ${RONDAS_NORMALES + 1}`;
+        nodo.classList.toggle("insuficiente", n < RONDAS_NORMALES + 1);
     },
 
-    guardar() {
-        $("ok-agregar").textContent = "";
-        const datos = this.leerFormulario();
-        const errores = AlmacenPreguntas.agregar(datos);
-        if (errores.length) {
-            $("error-agregar").textContent = errores.join(" ");
-            return;
+    leerTiempo(id) {
+        const n = Number($(id).value);
+        return Number.isInteger(n) && n >= 0 && n <= 120 ? n : null;
+    },
+
+    enviar() {
+        const a = $("nombre-a").value.trim() || "Equipo A";
+        const b = $("nombre-b").value.trim() || "Equipo B";
+        const error = texto => { $("error-config").textContent = texto; };
+
+        if (Validador.compactar(a) === Validador.compactar(b)) return error("Los equipos deben tener nombres distintos.");
+        const tiempoCara = this.leerTiempo("tiempo-cara");
+        const tiempoTurno = this.leerTiempo("tiempo-turno");
+        if (tiempoCara === null || tiempoTurno === null) return error("Los tiempos deben ser enteros entre 0 y 120 segundos.");
+
+        const marcadas = this.categoriasMarcadas();
+        if (!marcadas.length) return error("Elige al menos una categoría.");
+        const todas = AlmacenPreguntas.categorias();
+        const dificultad = $("dificultad").value;
+        const categorias = marcadas.length === todas.length ? null : marcadas; // null = incluye categorías nuevas
+        if (AlmacenPreguntas.filtrar(categorias, dificultad).length < RONDAS_NORMALES + 1) {
+            return error(`Con ese filtro no alcanzan las preguntas: se necesitan al menos ${RONDAS_NORMALES + 1}.`);
         }
-        $("error-agregar").textContent = "";
-        $("ok-agregar").textContent = "✔ Pregunta guardada. Ya puede salir en las siguientes partidas.";
-        $("form-agregar").reset();
-        this.actualizarSuma();
-        this.dibujarLista();
-        actualizarConteo();
-    },
 
-    dibujarLista() {
-        const lista = AlmacenPreguntas.personalizadas();
-        const ul = $("lista-personalizadas");
-        if (!lista.length) {
-            ul.replaceChildren(el("li", { clase: "nota", texto: "Aún no has agregado preguntas." }));
-            return;
-        }
-        ul.replaceChildren(...lista.map((p, i) => el("li", {},
-            el("span", { texto: `${p.pregunta} (${(p.respuestas || []).length} respuestas)` }),
-            el("button", {
-                clase: "btn btn-mini btn-error", texto: "Eliminar",
-                onclick: () => Modal.abrir("Eliminar pregunta", `¿Eliminar «${p.pregunta}»?`, [
-                    { texto: "Eliminar", clase: "btn-error", accion: () => { AlmacenPreguntas.eliminar(i); this.dibujarLista(); actualizarConteo(); } },
-                    { texto: "Cancelar", clase: "btn-secundario" }
-                ])
-            })
-        )));
-    },
-
-    exportar() {
-        const lista = AlmacenPreguntas.personalizadas();
-        if (!lista.length) {
-            $("error-agregar").textContent = "No hay preguntas personalizadas para exportar.";
-            return;
-        }
-        const blob = new Blob([JSON.stringify(lista, null, 4)], { type: "application/json" });
-        const a = el("a", { href: URL.createObjectURL(blob), download: "preguntas-personalizadas.json" });
-        document.body.append(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    },
-
-    importar(input) {
-        const archivo = input.files && input.files[0];
-        if (!archivo) return;
-        const lector = new FileReader();
-        lector.onload = () => {
-            try {
-                const { agregadas, rechazadas } = AlmacenPreguntas.importar(JSON.parse(lector.result));
-                $("error-agregar").textContent = rechazadas ? `${rechazadas} pregunta(s) inválidas o repetidas no se importaron.` : "";
-                $("ok-agregar").textContent = `✔ ${agregadas} pregunta(s) importadas.`;
-            } catch (e) {
-                $("error-agregar").textContent = `No se pudo importar: ${e.message}`;
-            }
-            input.value = "";
-            this.dibujarLista();
-            actualizarConteo();
-        };
-        lector.readAsText(archivo);
+        UI.config = { ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, categorias, dificultad };
+        AlmacenConfig.guardar(UI.config);
+        UI.iniciarPartida();
     }
 };
 
@@ -520,16 +683,30 @@ function actualizarConteo() {
     $("conteo-preguntas").textContent = `${AlmacenPreguntas.todas().length} preguntas en el banco`;
 }
 
+/** Muestra "Continuar partida" si hay una partida sin terminar guardada. */
+function actualizarMenu() {
+    const guardada = AlmacenPartida.cargar();
+    const hay = !!guardada && guardada.juego.fase !== FASES.FIN_JUEGO;
+    $("btn-continuar").hidden = !hay;
+    $("info-continuar").hidden = !hay;
+    if (!hay) return;
+    const j = guardada.juego;
+    const minutos = Math.round((Date.now() - guardada.guardadaEn) / 60000);
+    const hace = minutos < 1 ? "hace un momento" : `hace ${minutos} min`;
+    $("info-continuar").textContent =
+        `${j.equipos[0].nombre} ${j.equipos[0].puntos} – ${j.equipos[1].puntos} ${j.equipos[1].nombre}` +
+        ` · ronda ${j.rondaActual} de ${j.totalRondas} · guardada ${hace}`;
+}
+
 /** Cambia de pantalla en el panel; fuera del juego el proyector muestra la portada. */
 function irA(destino) {
-    if (destino === "config") {
-        $("error-config").textContent = "";
-        mostrarPantalla("config");
-        $("nombre-a").focus();
-    } else {
-        mostrarPantalla(destino);
+    if (destino === "config") return Configuracion.abrir();
+    mostrarPantalla(destino);
+    if (destino !== "juego" && destino !== "final") {
+        UI.temporizador.detener();
+        UI.publicar();
     }
-    if (destino !== "juego" && destino !== "final") UI.publicar();
+    if (destino === "menu") actualizarMenu();
 }
 
 function actualizarEstadoProyector() {
@@ -541,7 +718,9 @@ function actualizarEstadoProyector() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    UI.iniciar();
     actualizarConteo();
+    actualizarMenu();
     Editor.iniciar();
 
     // Cuando el proyector se abre (o se recarga) pide el estado actual
@@ -552,7 +731,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-proyector").addEventListener("click", () => {
         if (!CanalPanel.abrir()) {
             Modal.abrir("Ventana bloqueada",
-                "El navegador bloqueó la ventana del proyector. Permite las ventanas emergentes para este archivo, " +
+                "El navegador bloqueó la ventana del proyector. Permite las ventanas emergentes para esta página, " +
                 "o abre proyector.html desde la misma carpeta.",
                 [{ texto: "Aceptar" }]);
         }
@@ -560,25 +739,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll("[data-ir]").forEach(b =>
         b.addEventListener("click", () => (b.dataset.ir === "agregar" ? Editor.abrir() : irA(b.dataset.ir))));
+    document.querySelectorAll('[data-accion="pausa"]').forEach(b => b.addEventListener("click", () => UI.alternarPausa()));
+    document.querySelectorAll('[data-accion="deshacer"]').forEach(b => b.addEventListener("click", () => UI.deshacer()));
+    document.addEventListener("keydown", ev => UI.alPresionarTecla(ev));
 
-    $("form-config").addEventListener("submit", ev => {
-        ev.preventDefault();
-        const a = $("nombre-a").value.trim() || "Equipo A";
-        const b = $("nombre-b").value.trim() || "Equipo B";
-        if (Validador.compactar(a) === Validador.compactar(b)) {
-            $("error-config").textContent = "Los equipos deben tener nombres distintos.";
+    $("form-config").addEventListener("submit", ev => { ev.preventDefault(); Configuracion.enviar(); });
+    $("form-config").addEventListener("change", () => Configuracion.actualizarConteo());
+
+    $("btn-continuar").addEventListener("click", () => {
+        const guardada = AlmacenPartida.cargar();
+        if (!guardada) return actualizarMenu();
+        try {
+            UI.restaurar(guardada);
+        } catch (e) {
+            AlmacenPartida.borrar();
+            actualizarMenu();
+            Modal.abrir("No se pudo continuar", "La partida guardada está dañada y se descartó.", [{ texto: "Aceptar" }]);
             return;
         }
-        UI.nombres = [a, b];
-        UI.iniciarPartida();
+        UI.historial = [];
+        UI.escribiendo = false;
+        mostrarPantalla("juego");
+        UI.dibujar();
     });
 
     $("btn-revancha").addEventListener("click", () => UI.iniciarPartida());
+    $("btn-final-menu").addEventListener("click", () => {
+        AlmacenPartida.borrar();
+        irA("menu");
+    });
 
     $("btn-abandonar").addEventListener("click", () =>
         Modal.abrir("Abandonar partida", "Se perderá el marcador actual.", [
-            { texto: "Sí, salir al menú", clase: "btn-error", accion: () => irA("menu") },
-            { texto: "Seguir jugando", clase: "btn-secundario", accion: () => UI.dibujar() }
+            { texto: "Sí, salir al menú", clase: "btn-error", accion: () => { AlmacenPartida.borrar(); irA("menu"); } },
+            { texto: "Seguir jugando", clase: "btn-secundario" }
         ]));
 
     $("btn-salir").addEventListener("click", () => {

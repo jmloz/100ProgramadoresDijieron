@@ -8,6 +8,8 @@
 const MIN_RESPUESTAS = 5;
 const MAX_RESPUESTAS = 8;
 const MAX_PUNTOS_PREGUNTA = 100;
+const DIFICULTADES = Object.freeze({ facil: "Fácil", media: "Media", dificil: "Difícil" });
+const CATEGORIA_POR_DEFECTO = "General";
 
 /** Una respuesta del tablero, con su puntaje y sus sinónimos aceptados. */
 class Respuesta {
@@ -22,6 +24,17 @@ class Respuesta {
         this.revelada = true;
     }
 
+    /** Objeto plano para guardar la partida o deshacer. */
+    exportar() {
+        return { texto: this.texto, puntos: this.puntos, alias: this.alias, revelada: this.revelada };
+    }
+
+    static importar(d) {
+        const r = new Respuesta(d.texto, d.puntos, d.alias);
+        r.revelada = !!d.revelada;
+        return r;
+    }
+
     /** Todas las formas válidas de decir esta respuesta (texto + alias). */
     get formas() {
         return [this.texto, ...this.alias];
@@ -30,8 +43,10 @@ class Respuesta {
 
 /** Una pregunta tipo encuesta con 5 a 8 respuestas ordenadas por popularidad. */
 class Pregunta {
-    constructor(texto, respuestas) {
+    constructor(texto, respuestas, categoria = CATEGORIA_POR_DEFECTO, dificultad = "media") {
         this.texto = String(texto).trim();
+        this.categoria = categoria || CATEGORIA_POR_DEFECTO;
+        this.dificultad = dificultad || "media";
         // Siempre de la más popular a la menos popular
         this.respuestas = [...respuestas].sort((a, b) => b.puntos - a.puntos);
     }
@@ -46,6 +61,12 @@ class Pregunta {
 
         if (typeof datos.pregunta !== "string" || datos.pregunta.trim() === "") {
             errores.push("Falta el texto de la pregunta.");
+        }
+        if (datos.categoria !== undefined && (typeof datos.categoria !== "string" || datos.categoria.trim() === "")) {
+            errores.push("La categoría debe ser un texto.");
+        }
+        if (datos.dificultad !== undefined && !(datos.dificultad in DIFICULTADES)) {
+            errores.push(`La dificultad debe ser una de: ${Object.keys(DIFICULTADES).join(", ")}.`);
         }
 
         const respuestas = Array.isArray(datos.respuestas) ? datos.respuestas : [];
@@ -86,8 +107,24 @@ class Pregunta {
         if (errores.length > 0) throw new Error(errores.join(" "));
         return new Pregunta(
             datos.pregunta,
-            datos.respuestas.map(r => new Respuesta(r.texto, r.puntos, r.alias))
+            datos.respuestas.map(r => new Respuesta(r.texto, r.puntos, r.alias)),
+            datos.categoria && datos.categoria.trim(),
+            datos.dificultad
         );
+    }
+
+    /** Objeto plano (incluye qué respuestas ya se revelaron). */
+    exportar() {
+        return {
+            pregunta: this.texto,
+            categoria: this.categoria,
+            dificultad: this.dificultad,
+            respuestas: this.respuestas.map(r => r.exportar())
+        };
+    }
+
+    static importar(d) {
+        return new Pregunta(d.pregunta, d.respuestas.map(Respuesta.importar), d.categoria, d.dificultad);
     }
 
     get pendientes() {
@@ -117,5 +154,8 @@ class Equipo {
 }
 
 if (typeof module !== "undefined") {
-    module.exports = { Respuesta, Pregunta, Equipo, MIN_RESPUESTAS, MAX_RESPUESTAS, MAX_PUNTOS_PREGUNTA };
+    module.exports = {
+        Respuesta, Pregunta, Equipo,
+        MIN_RESPUESTAS, MAX_RESPUESTAS, MAX_PUNTOS_PREGUNTA, DIFICULTADES, CATEGORIA_POR_DEFECTO
+    };
 }

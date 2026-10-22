@@ -235,6 +235,55 @@ class Juego {
         this.fase = FASES.FIN_RONDA;
     }
 
+    /* ---------- Guardar / restaurar (para deshacer y continuar partida) ---------- */
+
+    /** Copia completa del estado como objeto plano (se puede pasar a JSON). */
+    exportar() {
+        const cc = this.caraACara;
+        return {
+            equipos: this.equipos.map(e => ({ nombre: e.nombre, puntos: e.puntos })),
+            totalRondas: this.totalRondas,
+            preguntas: this.preguntas.map(p => p.exportar()),
+            rondaActual: this.rondaActual,
+            banco: this.banco,
+            errores: this.errores,
+            equipoControl: this.equipoControl,
+            ganadorRonda: this.ganadorRonda,
+            puntosGanadosRonda: this.puntosGanadosRonda,
+            fase: this.fase,
+            caraACara: {
+                primero: cc.primero,
+                turno: cc.turno,
+                // Se guarda la posición, no el objeto, para poder reconstruirlo
+                respuestaPrimero: cc.respuestaPrimero ? this.pregunta.respuestas.indexOf(cc.respuestaPrimero) : null
+            }
+        };
+    }
+
+    /** Reconstruye un Juego a partir de lo que devolvió exportar(). */
+    static importar(d) {
+        const j = Object.create(Juego.prototype);
+        j.aleatorio = Math.random;
+        j.equipos = d.equipos.map(e => Object.assign(new Equipo(e.nombre), { puntos: e.puntos }));
+        j.totalRondas = d.totalRondas;
+        j.preguntas = d.preguntas.map(Pregunta.importar);
+        j.rondaActual = d.rondaActual;
+        j.pregunta = j.preguntas[j.rondaActual - 1];
+        j.banco = d.banco;
+        j.errores = d.errores;
+        j.equipoControl = d.equipoControl;
+        j.ganadorRonda = d.ganadorRonda;
+        j.puntosGanadosRonda = d.puntosGanadosRonda;
+        j.fase = d.fase;
+        const cc = d.caraACara;
+        j.caraACara = {
+            primero: cc.primero,
+            turno: cc.turno,
+            respuestaPrimero: cc.respuestaPrimero == null ? null : j.pregunta.respuestas[cc.respuestaPrimero]
+        };
+        return j;
+    }
+
     /** Pasa a la siguiente ronda o termina la partida. */
     siguienteRonda() {
         this._exigirFase(FASES.FIN_RONDA);

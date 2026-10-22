@@ -5,6 +5,8 @@
  *  Para agregar una pregunta, copia un bloque { ... } y edítalo.
  *
  *  Reglas:
+ *   - "categoria": tema de la pregunta (para filtrar al configurar la partida).
+ *   - "dificultad": "facil", "media" o "dificil".
  *   - "pregunta": el texto que se muestra en pantalla.
  *   - "respuestas": entre 5 y 8 respuestas.
  *       - "texto":  lo que aparece en el tablero al revelarse.
@@ -20,6 +22,8 @@
  */
 const PREGUNTAS_BASE = [
     {
+        categoria: "Programación",
+        dificultad: "facil",
         pregunta: "Menciona algo que buscas en Google o Stack Overflow",
         respuestas: [
             { texto: "Un mensaje de error", puntos: 32, alias: ["error", "el error", "mensaje de error", "excepcion", "exception", "stack trace", "errores"] },
@@ -32,6 +36,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "facil",
         pregunta: "Menciona una excusa para no entregar la tarea",
         respuestas: [
             { texto: "Se fue el internet", puntos: 30, alias: ["internet", "no hay internet", "sin internet", "wifi", "no tenia internet", "se cayo el internet"] },
@@ -44,6 +50,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Programación",
+        dificultad: "facil",
         pregunta: "Lo primero que haces cuando tu código no compila",
         respuestas: [
             { texto: "Leer el error", puntos: 28, alias: ["leo el error", "error", "ver el error", "leer el mensaje", "mensaje de error"] },
@@ -56,6 +64,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Lenguajes",
+        dificultad: "media",
         pregunta: "Menciona el lenguaje de programación más odiado",
         respuestas: [
             { texto: "JavaScript", puntos: 25, alias: ["js", "java script"] },
@@ -68,6 +78,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Lenguajes",
+        dificultad: "facil",
         pregunta: "Menciona el lenguaje favorito de los estudiantes de sistemas",
         respuestas: [
             { texto: "Python", puntos: 35, alias: ["piton"] },
@@ -80,6 +92,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "facil",
         pregunta: "Algo que hay en la mochila de un estudiante de sistemas",
         respuestas: [
             { texto: "Laptop", puntos: 30, alias: ["computadora", "compu", "lap", "portatil", "pc", "laptop"] },
@@ -92,6 +106,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "media",
         pregunta: "Menciona una razón para desvelarse programando",
         respuestas: [
             { texto: "La entrega es mañana", puntos: 35, alias: ["entrega", "deadline", "entrega mañana", "fecha limite", "tarea", "proyecto"] },
@@ -104,6 +120,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "media",
         pregunta: "¿Qué haces cuando el profe dice \"es un proyecto fácil\"?",
         respuestas: [
             { texto: "Entrar en pánico", puntos: 30, alias: ["panico", "miedo", "asustarme", "temblar", "preocuparme"] },
@@ -115,6 +133,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Programación",
+        dificultad: "media",
         pregunta: "Algo que dice un programador cuando su código funciona y no sabe por qué",
         respuestas: [
             { texto: "No lo toques", puntos: 34, alias: ["no tocar", "no le muevas", "no le muevan", "no tocar nada", "no lo toquen"] },
@@ -126,6 +146,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Cultura dev",
+        dificultad: "facil",
         pregunta: "Algo que nunca falta en el escritorio de un programador",
         respuestas: [
             { texto: "Café", puntos: 32, alias: ["cafe", "taza de cafe", "taza", "coffee"] },
@@ -138,6 +160,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "media",
         pregunta: "Algo que el profe siempre dice en clase de programación",
         respuestas: [
             { texto: "Esto viene en el examen", puntos: 28, alias: ["examen", "viene en el examen"] },
@@ -149,6 +173,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Programación",
+        dificultad: "dificil",
         pregunta: "Nombre de variable que usa un estudiante cuando ya no tiene ideas",
         respuestas: [
             { texto: "x", puntos: 26, alias: [] },
@@ -161,6 +187,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Programación",
+        dificultad: "media",
         pregunta: "Menciona algo que hace un programador cuando no le compila el código",
         respuestas: [
             { texto: "Revisar línea por línea", puntos: 25, alias: ["revisar", "revisar el codigo", "linea por linea", "depurar", "debug", "debuggear"] },
@@ -173,6 +201,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "dificil",
         pregunta: "Algo que da miedo escuchar en un equipo de proyecto",
         respuestas: [
             { texto: "Yo hago la portada", puntos: 30, alias: ["la portada", "portada"] },
@@ -184,6 +214,8 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        categoria: "Vida estudiantil",
+        dificultad: "facil",
         pregunta: "Algo que un estudiante de sistemas escucha de su familia",
         respuestas: [
             { texto: "Arréglame la computadora", puntos: 38, alias: ["arreglame la compu", "arregla la computadora", "compu", "computadora", "arreglar la compu"] },
@@ -192,6 +224,87 @@ const PREGUNTAS_BASE = [
             { texto: "¿Hackeas Facebook?", puntos: 12, alias: ["hackear", "hackear facebook", "hackeas", "facebook", "hacker"] },
             { texto: "Te la pasas en la compu", puntos: 10, alias: ["siempre en la compu", "solo juegas", "te la pasas jugando"] },
             { texto: "¿Y eso para qué sirve?", puntos: 6, alias: ["para que sirve", "eso para que sirve", "que haces"] }
+        ]
+    },
+    {
+        categoria: "Cultura dev",
+        dificultad: "facil",
+        pregunta: "Menciona un editor o IDE que usan los programadores",
+        respuestas: [
+            { texto: "VS Code", puntos: 40, alias: ["vscode", "visual studio code", "code"] },
+            { texto: "Visual Studio", puntos: 15, alias: [] },
+            { texto: "IntelliJ / JetBrains", puntos: 12, alias: ["intellij", "jetbrains", "pycharm", "android studio"] },
+            { texto: "Vim", puntos: 10, alias: ["neovim", "nvim", "vi"] },
+            { texto: "Notepad++", puntos: 8, alias: ["notepad plus plus"] },
+            { texto: "Eclipse", puntos: 8, alias: [] },
+            { texto: "Bloc de notas", puntos: 7, alias: ["notepad", "block de notas"] }
+        ]
+    },
+    {
+        categoria: "Lenguajes",
+        dificultad: "facil",
+        pregunta: "Menciona un lenguaje que se aprende en la carrera",
+        respuestas: [
+            { texto: "C", puntos: 25, alias: ["lenguaje c"] },
+            { texto: "Java", puntos: 22, alias: [] },
+            { texto: "Python", puntos: 20, alias: ["piton"] },
+            { texto: "C++", puntos: 13, alias: ["cpp", "c plus plus", "c mas mas"] },
+            { texto: "SQL", puntos: 10, alias: ["mysql", "base de datos"] },
+            { texto: "JavaScript", puntos: 6, alias: ["js", "java script"] },
+            { texto: "Ensamblador", puntos: 4, alias: ["assembly", "asm"] }
+        ]
+    },
+    {
+        categoria: "Programación",
+        dificultad: "dificil",
+        pregunta: "Menciona un error que todo programador ha visto",
+        respuestas: [
+            { texto: "NullPointerException", puntos: 28, alias: ["null pointer", "null", "referencia nula", "null reference", "nullreferenceexception"] },
+            { texto: "Segmentation fault", puntos: 20, alias: ["segfault", "violacion de segmento", "core dumped"] },
+            { texto: "Syntax error", puntos: 18, alias: ["error de sintaxis", "sintaxis"] },
+            { texto: "Stack overflow", puntos: 12, alias: ["desbordamiento de pila", "stackoverflow", "recursion infinita"] },
+            { texto: "Index out of bounds", puntos: 12, alias: ["fuera de rango", "index out of range", "out of bounds", "indice fuera de rango"] },
+            { texto: "404 Not Found", puntos: 10, alias: ["404", "not found", "no encontrado"] }
+        ]
+    },
+    {
+        categoria: "Cultura dev",
+        dificultad: "media",
+        pregunta: "Algo que hace un programador en su día libre",
+        respuestas: [
+            { texto: "Programar", puntos: 30, alias: ["mas codigo", "proyecto personal", "codear"] },
+            { texto: "Videojuegos", puntos: 25, alias: ["jugar", "juegos", "gaming", "videojuego"] },
+            { texto: "Dormir", puntos: 20, alias: ["descansar", "siesta"] },
+            { texto: "Ver series", puntos: 12, alias: ["series", "netflix", "anime", "peliculas"] },
+            { texto: "Salir con amigos", puntos: 8, alias: ["amigos", "salir", "fiesta"] },
+            { texto: "Tocar pasto", puntos: 5, alias: ["touch grass", "salir afuera", "ir al parque"] }
+        ]
+    },
+    {
+        categoria: "Lenguajes",
+        dificultad: "dificil",
+        pregunta: "Menciona una palabra reservada que existe en casi todos los lenguajes",
+        respuestas: [
+            { texto: "if", puntos: 25, alias: [] },
+            { texto: "for", puntos: 20, alias: [] },
+            { texto: "while", puntos: 15, alias: [] },
+            { texto: "return", puntos: 14, alias: [] },
+            { texto: "else", puntos: 12, alias: [] },
+            { texto: "class", puntos: 8, alias: ["clase"] },
+            { texto: "int", puntos: 6, alias: ["integer"] }
+        ]
+    },
+    {
+        categoria: "Cultura dev",
+        dificultad: "facil",
+        pregunta: "Una página que todo programador tiene en favoritos",
+        respuestas: [
+            { texto: "Stack Overflow", puntos: 30, alias: ["so", "stackoverflow"] },
+            { texto: "GitHub", puntos: 25, alias: ["git hub"] },
+            { texto: "YouTube", puntos: 15, alias: ["you tube"] },
+            { texto: "ChatGPT / IA", puntos: 13, alias: ["chatgpt", "chat gpt", "gpt", "ia", "claude", "gemini"] },
+            { texto: "Documentación oficial", puntos: 10, alias: ["documentacion", "docs", "mdn", "la documentacion"] },
+            { texto: "W3Schools", puntos: 7, alias: ["w3", "w3 schools"] }
         ]
     }
 ];

@@ -22,6 +22,8 @@
     <h1 class="logo"><span class="logo-100">100</span> PROGRAMADORES<br>DIJERON</h1>
     <p class="lema">&lt;encuestamos a 100 programadores... y nadie leyó la documentación /&gt;</p>
     <nav class="menu">
+        <button class="btn btn-grande" id="btn-continuar" hidden>⏯ Continuar partida</button>
+        <p class="nota info-continuar" id="info-continuar" hidden></p>
         <button class="btn btn-grande" data-ir="config">▶ Jugar</button>
         <button class="btn btn-grande" data-ir="agregar">＋ Agregar pregunta</button>
         <button class="btn btn-grande" data-ir="instrucciones">? Ver instrucciones</button>
@@ -32,14 +34,46 @@
 
 <!-- ==================== CONFIGURACIÓN ==================== -->
 <section id="pantalla-config" class="pantalla">
-    <h2>Nombres de los equipos</h2>
+    <h2>Configurar partida</h2>
     <form id="form-config" class="tarjeta form-config">
-        <label>Equipo 1
-            <input id="nombre-a" maxlength="24" placeholder="Equipo A">
-        </label>
-        <label>Equipo 2
-            <input id="nombre-b" maxlength="24" placeholder="Equipo B">
-        </label>
+        <fieldset>
+            <legend>Equipos</legend>
+            <div class="fila-2">
+                <label>Equipo 1
+                    <input id="nombre-a" maxlength="24" placeholder="Equipo A">
+                </label>
+                <label>Equipo 2
+                    <input id="nombre-b" maxlength="24" placeholder="Equipo B">
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Tiempo para responder (0 = sin tiempo)</legend>
+            <div class="fila-2">
+                <label>Cara a cara (segundos)
+                    <input id="tiempo-cara" type="number" min="0" max="120" step="1">
+                </label>
+                <label>Turnos y robo (segundos)
+                    <input id="tiempo-turno" type="number" min="0" max="120" step="1">
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Preguntas</legend>
+            <div class="categorias" id="lista-categorias"></div>
+            <label>Dificultad
+                <select id="dificultad">
+                    <option value="todas">Todas</option>
+                    <option value="facil">Fácil</option>
+                    <option value="media">Media</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </label>
+            <p class="nota" id="conteo-filtro"></p>
+        </fieldset>
+
         <p class="error-form" id="error-config"></p>
         <div class="fila-botones">
             <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
@@ -69,15 +103,22 @@
 
             <h2 class="pregunta" id="pregunta"></h2>
 
-            <div class="errores" id="errores" aria-label="Errores">
-                <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+            <div class="fila-estado">
+                <div class="errores" id="errores" aria-label="Errores">
+                    <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+                </div>
+                <div class="reloj" id="reloj-juego"></div>
             </div>
 
             <div class="turno" id="turno"></div>
 
             <div class="controles" id="controles"></div>
 
-            <button class="btn btn-mini btn-secundario" id="btn-abandonar">Abandonar partida</button>
+            <div class="fila-botones herramientas">
+                <button class="btn btn-mini btn-secundario" data-accion="pausa">⏯ Pausar tiempo <kbd>Espacio</kbd></button>
+                <button class="btn btn-mini btn-secundario" data-accion="deshacer">↶ Deshacer <kbd>Ctrl+Z</kbd></button>
+                <button class="btn btn-mini btn-secundario" id="btn-abandonar">Abandonar partida</button>
+            </div>
         </div>
 
         <!-- Solo la ve el moderador: todas las respuestas, incluso las ocultas -->
@@ -85,6 +126,20 @@
             <h3>🤫 Tarjeta del moderador</h3>
             <p class="nota" id="ayuda-tarjeta"></p>
             <ol class="tarjeta-respuestas" id="tarjeta-respuestas"></ol>
+            <details class="atajos">
+                <summary>⌨ Atajos de teclado</summary>
+                <dl>
+                    <dt><kbd>1</kbd>–<kbd>8</kbd></dt><dd>Aceptar la respuesta con ese número</dd>
+                    <dt><kbd>X</kbd></dt><dd>Marcar error</dd>
+                    <dt><kbd>T</kbd></dt><dd>Escribir una respuesta (<kbd>Esc</kbd> para salir)</dd>
+                    <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Cara a cara: quién presionó primero</dd>
+                    <dt><kbd>J</kbd> / <kbd>P</kbd></dt><dd>Jugar o pasar</dd>
+                    <dt><kbd>R</kbd></dt><dd>Revelar respuestas restantes</dd>
+                    <dt><kbd>Enter</kbd></dt><dd>Siguiente ronda / continuar</dd>
+                    <dt><kbd>Espacio</kbd></dt><dd>Pausar o reanudar el tiempo</dd>
+                    <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Deshacer la última acción</dd>
+                </dl>
+            </details>
         </aside>
     </div>
 </section>
@@ -96,6 +151,19 @@
         <label>Pregunta
             <input id="nueva-pregunta" maxlength="140" placeholder='Ej. "Algo que se rompe un viernes a las 5 pm"'>
         </label>
+        <div class="fila-2">
+            <label>Categoría
+                <input id="nueva-categoria" maxlength="40" list="categorias-existentes" placeholder="Ej. Programación">
+                <datalist id="categorias-existentes"></datalist>
+            </label>
+            <label>Dificultad
+                <select id="nueva-dificultad">
+                    <option value="facil">Fácil</option>
+                    <option value="media" selected>Media</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </label>
+        </div>
         <p class="nota">Entre 5 y 8 respuestas. Puntos enteros; la suma no debe pasar de 100.
             Sinónimos separados por comas (opcional).</p>
         <div class="tabla-respuestas">
@@ -139,6 +207,7 @@
             <li>El equipo con el control adivina las respuestas restantes. Cada acierto suma al
                 <strong>banco</strong>. Con <strong>3 errores (✕ ✕ ✕)</strong> el otro equipo
                 tiene <strong>una</strong> oportunidad de robar el banco.</li>
+            <li>Si se acaba el <strong>tiempo</strong> para responder, cuenta como error.</li>
             <li>Quien gane la ronda se lleva el banco. Al final gana el equipo con más puntos.</li>
         </ol>
         <h3>Para el moderador</h3>
@@ -146,13 +215,13 @@
             <li>Presiona <strong>📽 Abrir proyector</strong>, arrastra esa ventana a la pantalla del proyector y
                 haz <strong>doble clic</strong> en ella para ponerla en pantalla completa. Esta ventana (el panel)
                 se queda en tu laptop.</li>
-            <li>En la <strong>tarjeta del moderador</strong> ves todas las respuestas: haz clic en una para
-                aceptarla, o escríbela en la caja de texto.</li>
+            <li>En la <strong>tarjeta del moderador</strong> ves todas las respuestas: haz clic en una (o presiona
+                su número) para aceptarla, o presiona <kbd>T</kbd> para escribir lo que dijo el jugador.</li>
             <li>No importan mayúsculas, acentos ni espacios: <em>"STACK  overflów"</em> = <em>"stackoverflow"</em>.</li>
-            <li>Si la respuesta es <strong>dudosa</strong>, el juego pregunta al moderador si la acepta.</li>
-            <li>Si no coincide con nada, el moderador puede confirmar el error o
-                <strong>aceptarla manualmente</strong> eligiendo a qué respuesta corresponde.</li>
-            <li>El botón <strong>✕ Error</strong> marca un error directo (no contestó, se acabó el tiempo, etc.).</li>
+            <li>Si la respuesta es <strong>dudosa</strong>, el juego pregunta si la aceptas.
+                Mientras decides, el tiempo se pausa.</li>
+            <li>¿Te equivocaste? <strong>↶ Deshacer</strong> (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) regresa la última acción.</li>
+            <li>La partida se guarda sola: si se cierra el navegador, usa <strong>⏯ Continuar partida</strong>.</li>
             <li>Una respuesta que ya está en el tablero no cuenta como error.</li>
         </ul>
     </div>
@@ -167,7 +236,7 @@
     <div class="final-marcador" id="final-marcador"></div>
     <div class="fila-botones">
         <button class="btn btn-grande" id="btn-revancha">Revancha</button>
-        <button class="btn btn-grande btn-secundario" data-ir="menu">Menú principal</button>
+        <button class="btn btn-grande btn-secundario" id="btn-final-menu">Menú principal</button>
     </div>
 </section>
 
@@ -196,6 +265,8 @@
 <script src="js/juego.js"></script>
 <script src="js/almacen.js"></script>
 <script src="js/sonidos.js"></script>
+<script src="js/temporizador.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

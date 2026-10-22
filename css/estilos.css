@@ -270,6 +270,29 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     text-shadow: 0 0 40px #ff0000, 0 0 4px #fff;
 }
 
+/* ---------- Temporizador ---------- */
+.fila-estado { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; }
+.reloj {
+    --avance: 100%;
+    width: 64px; height: 64px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--fuente-titulo); font-size: 1.5rem;
+    background:
+        radial-gradient(closest-side, var(--fondo-2) 78%, transparent 80%),
+        conic-gradient(var(--dorado) var(--avance), #ffffff22 0);
+}
+.reloj[hidden] { display: none; }
+.reloj.urgente {
+    color: #fff;
+    background:
+        radial-gradient(closest-side, #5a0d14 78%, transparent 80%),
+        conic-gradient(var(--rojo) var(--avance), #ffffff22 0);
+    animation: latido .5s infinite;
+}
+.reloj.pausado { font-size: 1.1rem; opacity: .75; animation: none; }
+.modo-proyector .reloj { width: 9vh; height: 9vh; font-size: 4vh; }
+.modo-proyector .reloj.pausado { font-size: 1.6rem; }
+
 /* ---------- Turno y controles ---------- */
 .turno { text-align: center; min-height: 3em; }
 .turno-principal {
@@ -391,6 +414,38 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
 .item-alias { color: var(--tenue); overflow-wrap: anywhere; }
 .item-puntos { font-family: var(--fuente-titulo); color: var(--dorado); font-size: 1.2rem; }
 
+/* Atajos de teclado */
+kbd {
+    font-family: monospace; font-size: .75em; font-weight: 700;
+    padding: 1px 6px; border-radius: 5px;
+    background: #0006; color: inherit; border: 1px solid #fff4;
+}
+.btn kbd { margin-left: 4px; opacity: .85; }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.6); }
+.herramientas { margin-top: 8px; }
+.atajos { margin-top: 14px; }
+.atajos summary { cursor: pointer; font-weight: 700; color: var(--tenue); }
+.atajos dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0 0; font-size: .9rem; }
+.atajos dt { white-space: nowrap; }
+.atajos dd { margin: 0; color: var(--tenue); }
+
+/* Configuración y menú */
+.form-config { max-width: 640px; }
+fieldset { border: 2px solid var(--borde); border-radius: 12px; padding: 12px 14px; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+legend { font-weight: 900; color: var(--dorado); padding: 0 6px; }
+.fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.categorias { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+label.check { flex-direction: row; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; }
+label.check input { width: 20px; height: 20px; accent-color: var(--dorado); }
+select {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 2px solid var(--borde); background: #0d1546; color: var(--texto);
+}
+#conteo-filtro { text-align: left; margin: 0; }
+#conteo-filtro.insuficiente { color: #ff8a91; font-weight: 700; }
+.info-continuar { margin: -8px 0 4px; }
+.menu .nota[hidden], .menu .btn[hidden] { display: none; }
+
 /* ---------- Proyector ---------- */
 .modo-proyector { overflow-x: hidden; }
 .modo-proyector.sin-cursor, .modo-proyector.sin-cursor * { cursor: none; }
@@ -400,16 +455,23 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     background: var(--tarjeta); border: 2px dashed var(--borde); border-radius: 12px;
     padding: 10px 18px; text-align: center;
 }
-.modo-proyector .pantalla-ancha { max-width: 1500px; min-height: 100vh; justify-content: center; }
-.modo-proyector .pregunta { font-size: clamp(1.4rem, 3vw, 2.4rem); max-width: 1300px; }
-.modo-proyector .tablero { max-width: 1300px; gap: 14px; padding: 18px; }
-.modo-proyector .casilla { height: clamp(60px, 9vh, 92px); }
-.modo-proyector .casilla .numero { width: 56px; height: 56px; font-size: 1.8rem; }
+/* El tablero del proyector se ajusta a la altura de la pantalla (vh) para no cortarse */
+.modo-proyector .pantalla-ancha {
+    max-width: 1500px; min-height: 100vh; justify-content: center;
+    padding-top: 2vh; padding-bottom: 2vh; gap: 1.6vh;
+}
+.modo-proyector .pregunta { font-size: clamp(1.2rem, min(3vw, 4vh), 2.4rem); max-width: 1300px; margin: 0; }
+.modo-proyector .tablero { max-width: 1300px; gap: 1.2vh; padding: 1.6vh; }
+.modo-proyector .casilla { height: clamp(44px, 7.4vh, 92px); }
+.modo-proyector .casilla .numero { width: 5.4vh; height: 5.4vh; font-size: 3vh; }
+.modo-proyector .marcador .equipo { padding: 1vh 16px; }
+.modo-proyector .errores .x { width: 6vh; height: 6vh; font-size: 4vh; }
 .modo-proyector .casilla.revelada .texto { font-size: clamp(1.1rem, 2vw, 1.7rem); }
 .modo-proyector .casilla.revelada .puntos { font-size: clamp(1.6rem, 3vw, 2.6rem); min-width: 96px; }
 .modo-proyector .equipo-nombre { font-size: 1.5rem; }
-.modo-proyector .equipo-puntos { font-size: 3.4rem; }
-.modo-proyector .turno-principal { font-size: 1.6rem; }
+.modo-proyector .equipo-puntos { font-size: clamp(2rem, 6vh, 3.4rem); line-height: 1.1; }
+.modo-proyector .turno-principal { font-size: clamp(1.1rem, 3vh, 1.6rem); }
+.modo-proyector .turno { min-height: 0; }
 .modo-proyector .aviso { font-size: 1.3rem; color: #fff; }
 .modo-proyector #pantalla-final { min-height: 100vh; justify-content: center; }
 .modo-proyector .final-sub { font-size: 2rem; margin: 0; }
@@ -432,4 +494,5 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     .tabla-respuestas .encabezado { display: none; }
     .fila-respuesta { grid-template-columns: 24px 1fr 70px; }
     .fila-respuesta .r-alias { grid-column: 2 / -1; }
+    .fila-2 { grid-template-columns: 1fr; }
 }
