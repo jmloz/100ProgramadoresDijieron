@@ -3,6 +3,14 @@
 Versión estudiantil de "100 mexicanos dijeron" con humor de ingeniería en sistemas.
 Hecho en **HTML + CSS + JavaScript puro**: no requiere instalar, compilar ni usar servidor.
 
+## ▶ Jugar en línea
+
+**https://jmloz.github.io/100ProgramadoresDijieron/**
+
+Abre el enlace en la computadora conectada al proyector: esa página es el panel del moderador y desde su
+botón **📽 Abrir proyector** se abre la pantalla para el público. También puedes descargar el proyecto y
+abrir `index.html` sin internet (ver abajo).
+
 ## Cómo ejecutarlo
 
 El juego usa **dos ventanas** en la misma computadora (laptop conectada al proyector como pantalla extendida):
