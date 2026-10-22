@@ -80,12 +80,6 @@ h2 { text-align: center; color: var(--dorado); }
     background: linear-gradient(180deg, #ff6b73, var(--rojo) 50%, #b8121c);
     box-shadow: 0 4px 0 #6d0a10, 0 6px 14px #0007;
 }
-.btn-icono {
-    position: fixed; top: 12px; right: 12px; z-index: 50;
-    background: var(--tarjeta); border: 2px solid var(--borde); color: #fff;
-    border-radius: 50%; width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer;
-}
-
 .fila-botones { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
 
 /* ---------- Menú ---------- */
@@ -347,7 +341,87 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     to { transform: translateY(110vh) rotate(720deg); }
 }
 
+/* ---------- Panel del moderador ---------- */
+.barra-panel {
+    position: sticky; top: 0; z-index: 60;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    padding: 8px 16px;
+    background: #050a24ee;
+    border-bottom: 2px solid var(--borde);
+    backdrop-filter: blur(6px);
+}
+.barra-titulo { font-weight: 900; margin-right: auto; }
+.estado-proyector { font-weight: 700; color: var(--tenue); }
+.estado-proyector.conectado { color: var(--verde); }
+
+.pantalla-ancha { max-width: 1400px; }
+.admin-juego {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+    align-items: start;
+}
+.admin-principal { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+.marcador-compacto .equipo-puntos { font-size: 1.9rem; }
+
+.tarjeta-moderador { position: sticky; top: 70px; padding: 16px; }
+.tarjeta-moderador h3 { margin: 0 0 4px; color: var(--dorado); }
+.tarjeta-moderador .nota { text-align: left; margin: 0 0 10px; }
+.tarjeta-respuestas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item-tarjeta {
+    display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #0d1546;
+    border: 2px solid var(--borde);
+}
+.item-tarjeta.clicable { cursor: pointer; transition: border-color .15s, background .15s; }
+.item-tarjeta.clicable:hover, .item-tarjeta.clicable:focus-visible {
+    border-color: var(--dorado); background: #1d2a80; outline: none;
+}
+.item-tarjeta.revelada { background: #11402b; border-color: var(--verde); }
+.item-tarjeta.revelada .item-texto { text-decoration: line-through; opacity: .8; }
+.item-num {
+    font-family: var(--fuente-titulo); text-align: center;
+    background: #0a1a66; border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center;
+}
+.item-cuerpo { display: flex; flex-direction: column; min-width: 0; }
+.item-texto { font-weight: 900; }
+.item-alias { color: var(--tenue); overflow-wrap: anywhere; }
+.item-puntos { font-family: var(--fuente-titulo); color: var(--dorado); font-size: 1.2rem; }
+
+/* ---------- Proyector ---------- */
+.modo-proyector { overflow-x: hidden; }
+.modo-proyector.sin-cursor, .modo-proyector.sin-cursor * { cursor: none; }
+.modo-proyector #pantalla-espera { min-height: 100vh; justify-content: center; }
+.logo-proyector { font-size: clamp(3rem, 9vw, 7rem); }
+.ayuda-proyector {
+    background: var(--tarjeta); border: 2px dashed var(--borde); border-radius: 12px;
+    padding: 10px 18px; text-align: center;
+}
+.modo-proyector .pantalla-ancha { max-width: 1500px; min-height: 100vh; justify-content: center; }
+.modo-proyector .pregunta { font-size: clamp(1.4rem, 3vw, 2.4rem); max-width: 1300px; }
+.modo-proyector .tablero { max-width: 1300px; gap: 14px; padding: 18px; }
+.modo-proyector .casilla { height: clamp(60px, 9vh, 92px); }
+.modo-proyector .casilla .numero { width: 56px; height: 56px; font-size: 1.8rem; }
+.modo-proyector .casilla.revelada .texto { font-size: clamp(1.1rem, 2vw, 1.7rem); }
+.modo-proyector .casilla.revelada .puntos { font-size: clamp(1.6rem, 3vw, 2.6rem); min-width: 96px; }
+.modo-proyector .equipo-nombre { font-size: 1.5rem; }
+.modo-proyector .equipo-puntos { font-size: 3.4rem; }
+.modo-proyector .turno-principal { font-size: 1.6rem; }
+.modo-proyector .aviso { font-size: 1.3rem; color: #fff; }
+.modo-proyector #pantalla-final { min-height: 100vh; justify-content: center; }
+.modo-proyector .final-sub { font-size: 2rem; margin: 0; }
+.modo-proyector .final-ganador { font-size: clamp(3rem, 10vw, 8rem); }
+.modo-proyector .final-marcador { max-width: 720px; }
+.modo-proyector .final-fila { font-size: 2rem; padding: 18px 26px; }
+
 /* ---------- Pantallas pequeñas ---------- */
+@media (max-width: 1000px) {
+    .admin-juego { grid-template-columns: 1fr; }
+    .tarjeta-moderador { position: static; }
+}
 @media (max-width: 640px) {
     body { font-size: 16px; }
     .tablero { grid-auto-flow: row; grid-template-columns: 1fr; grid-template-rows: none !important; }

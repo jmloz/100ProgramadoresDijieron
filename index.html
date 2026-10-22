@@ -3,13 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>100 Programadores Dijeron</title>
+    <title>Panel del moderador · 100 Programadores Dijeron</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-<button id="btn-sonido" class="btn-icono" title="Activar/desactivar sonido">🔊</button>
+<!-- Barra fija: estado de la ventana del proyector y sonido -->
+<div class="barra-panel">
+    <span class="barra-titulo">🎙 Panel del moderador</span>
+    <span class="estado-proyector" id="estado-proyector">○ Proyector sin abrir</span>
+    <button class="btn btn-mini" id="btn-proyector">📽 Abrir proyector</button>
+    <button id="btn-sonido" class="btn btn-mini btn-secundario" title="Activar/desactivar sonido">🔊</button>
+</div>
 
 <!-- ==================== MENÚ PRINCIPAL ==================== -->
 <section id="pantalla-menu" class="pantalla activa">
@@ -42,36 +48,45 @@
     </form>
 </section>
 
-<!-- ==================== JUEGO ==================== -->
-<section id="pantalla-juego" class="pantalla">
-    <header class="marcador">
-        <div class="equipo" id="equipo-0">
-            <span class="equipo-nombre"></span>
-            <span class="equipo-puntos">0</span>
-        </div>
-        <div class="centro-marcador">
-            <div class="ronda" id="ronda"></div>
-            <div class="banco">BANCO <span id="banco">0</span></div>
-        </div>
-        <div class="equipo" id="equipo-1">
-            <span class="equipo-nombre"></span>
-            <span class="equipo-puntos">0</span>
-        </div>
-    </header>
+<!-- ==================== JUEGO (vista del moderador) ==================== -->
+<section id="pantalla-juego" class="pantalla pantalla-ancha">
+    <div class="admin-juego">
+        <div class="admin-principal">
+            <header class="marcador marcador-compacto">
+                <div class="equipo" id="equipo-0">
+                    <span class="equipo-nombre"></span>
+                    <span class="equipo-puntos">0</span>
+                </div>
+                <div class="centro-marcador">
+                    <div class="ronda" id="ronda"></div>
+                    <div class="banco">BANCO <span id="banco">0</span></div>
+                </div>
+                <div class="equipo" id="equipo-1">
+                    <span class="equipo-nombre"></span>
+                    <span class="equipo-puntos">0</span>
+                </div>
+            </header>
 
-    <h2 class="pregunta" id="pregunta"></h2>
+            <h2 class="pregunta" id="pregunta"></h2>
 
-    <div class="tablero" id="tablero"></div>
+            <div class="errores" id="errores" aria-label="Errores">
+                <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+            </div>
 
-    <div class="errores" id="errores" aria-label="Errores">
-        <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+            <div class="turno" id="turno"></div>
+
+            <div class="controles" id="controles"></div>
+
+            <button class="btn btn-mini btn-secundario" id="btn-abandonar">Abandonar partida</button>
+        </div>
+
+        <!-- Solo la ve el moderador: todas las respuestas, incluso las ocultas -->
+        <aside class="tarjeta tarjeta-moderador">
+            <h3>🤫 Tarjeta del moderador</h3>
+            <p class="nota" id="ayuda-tarjeta"></p>
+            <ol class="tarjeta-respuestas" id="tarjeta-respuestas"></ol>
+        </aside>
     </div>
-
-    <div class="turno" id="turno"></div>
-
-    <div class="controles" id="controles"></div>
-
-    <button class="btn btn-mini btn-secundario" id="btn-abandonar">Abandonar partida</button>
 </section>
 
 <!-- ==================== AGREGAR PREGUNTA ==================== -->
@@ -128,6 +143,11 @@
         </ol>
         <h3>Para el moderador</h3>
         <ul>
+            <li>Presiona <strong>📽 Abrir proyector</strong>, arrastra esa ventana a la pantalla del proyector y
+                haz <strong>doble clic</strong> en ella para ponerla en pantalla completa. Esta ventana (el panel)
+                se queda en tu laptop.</li>
+            <li>En la <strong>tarjeta del moderador</strong> ves todas las respuestas: haz clic en una para
+                aceptarla, o escríbela en la caja de texto.</li>
             <li>No importan mayúsculas, acentos ni espacios: <em>"STACK  overflów"</em> = <em>"stackoverflow"</em>.</li>
             <li>Si la respuesta es <strong>dudosa</strong>, el juego pregunta al moderador si la acepta.</li>
             <li>Si no coincide con nada, el moderador puede confirmar el error o
@@ -168,12 +188,14 @@
 </div>
 
 <!-- Orden importante: cada archivo usa lo definido en los anteriores -->
+<script src="js/dom.js"></script>
+<script src="js/canal.js"></script>
 <script src="js/preguntas.js"></script>
 <script src="js/validador.js"></script>
 <script src="js/modelos.js"></script>
 <script src="js/juego.js"></script>
 <script src="js/almacen.js"></script>
 <script src="js/sonidos.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>

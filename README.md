@@ -5,27 +5,45 @@ Hecho en **HTML + CSS + JavaScript puro**: no requiere instalar, compilar ni usa
 
 ## Cómo ejecutarlo
 
+El juego usa **dos ventanas** en la misma computadora (laptop conectada al proyector como pantalla extendida):
+
+| Ventana | Archivo | Quién la ve |
+|---------|---------|-------------|
+| Panel del moderador | `index.html` | Solo el moderador (en la laptop): menú, controles y la tarjeta con todas las respuestas |
+| Proyector | `proyector.html` | El público: tablero, marcador, errores, turno y pantalla del ganador |
+
 1. Descarga o copia la carpeta completa del proyecto.
 2. Abre `index.html` con doble clic (Chrome, Edge o Firefox).
-3. Para proyectarlo en clase, presiona **F11** (pantalla completa).
+3. Presiona **📽 Abrir proyector**. Si el navegador bloquea la ventana emergente, permítela.
+4. Arrastra la ventana del proyector a la pantalla del proyector y haz **doble clic** en ella para ponerla
+   en pantalla completa.
+5. Juega desde el panel: el proyector se actualiza solo. En la **tarjeta del moderador** puedes hacer clic en
+   una respuesta para aceptarla, o escribir lo que dijo el jugador.
+
+Si el proyector se cierra o se recarga, vuelve a abrirlo con el mismo botón y recupera el estado de la partida.
+El proyector nunca recibe el texto de las respuestas ocultas, así que no hay forma de "espiarlas".
 
 > Opcional: también puedes servirlo con `python3 -m http.server` y abrir `http://localhost:8000`.
 
-Los sonidos se generan con Web Audio API, así que no se necesitan archivos de audio.
-El botón 🔊 de la esquina silencia el juego.
+Los sonidos se generan con Web Audio API y suenan desde el panel (misma computadora, mismas bocinas).
+El botón 🔊 de la barra superior los silencia.
 
 ## Estructura
 
 ```
-index.html          Pantallas: menú, configuración, juego, agregar pregunta, instrucciones, final
-css/estilos.css     Tema visual (tablero, marcador, animaciones)
+index.html          PANEL DEL MODERADOR: menú, configuración, controles, tarjeta de respuestas, editor
+proyector.html      PANTALLA DEL PÚBLICO: tablero, marcador, errores y ganador (sin controles)
+css/estilos.css     Tema visual de ambas ventanas (tablero, marcador, animaciones)
+js/dom.js           Utilidades de DOM compartidas
+js/canal.js         Comunicación panel <-> proyector (postMessage + BroadcastChannel)
 js/preguntas.js     BANCO DE PREGUNTAS (aquí se agregan preguntas fijas)
 js/validador.js     Normaliza y compara respuestas (acentos, mayúsculas, sinónimos, errores de dedo)
 js/modelos.js       Clases Respuesta, Pregunta y Equipo
 js/juego.js         Clase Juego: reglas y fases de la ronda (sin nada de interfaz)
 js/almacen.js       Preguntas agregadas desde el menú (se guardan en el navegador)
 js/sonidos.js       Efectos de acierto, error, revelar y ganador
-js/ui.js            Interfaz: dibuja el tablero y conecta botones con Juego
+js/admin.js         Panel: conecta los controles con Juego y envía el estado al proyector
+js/proyector.js     Proyector: dibuja el estado que recibe del panel
 ```
 
 ## Reglas implementadas

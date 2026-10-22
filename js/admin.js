@@ -1,33 +1,11 @@
 /*
  * ============================================================
- *  INTERFAZ: pantallas, tablero, marcador y modal del moderador
- *  Toda la lógica de reglas vive en Juego; aquí solo se dibuja
- *  y se traducen los clics/teclas en llamadas a Juego.
+ *  PANEL DEL MODERADOR (index.html)
+ *  Controla la partida y le manda al proyector lo que debe
+ *  mostrar. Toda la lógica de reglas vive en Juego; aquí solo
+ *  se traducen los clics/teclas en llamadas a Juego.
  * ============================================================
  */
-
-/* ---------- Utilidades de DOM ---------- */
-
-const $ = id => document.getElementById(id);
-
-/** Crea un elemento. Usa textContent, así que el texto del usuario nunca se interpreta como HTML. */
-function el(etiqueta, atributos = {}, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    for (const [clave, valor] of Object.entries(atributos)) {
-        if (clave === "clase") nodo.className = valor;
-        else if (clave === "texto") nodo.textContent = valor;
-        else if (clave.startsWith("on")) nodo.addEventListener(clave.slice(2), valor);
-        else nodo.setAttribute(clave, valor);
-    }
-    hijos.flat().forEach(h => h != null && nodo.append(h));
-    return nodo;
-}
-
-function mostrarPantalla(nombre) {
-    document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
-    $(`pantalla-${nombre}`).classList.add("activa");
-    window.scrollTo(0, 0);
-}
 
 /* ---------- Modal del moderador ---------- */
 
@@ -69,8 +47,8 @@ const UI = {
     juego: null,
     nombres: ["Equipo A", "Equipo B"],
     aviso: "",                 // mensaje temporal (acierto, error, robo...)
-    animadas: new Set(),       // respuestas cuya animación ya se mostró
     mostrarRestantes: false,   // al final de la ronda: destapar lo que nadie dijo
+    efecto: null,              // efecto para el proyector en el próximo envío (ej. X grande)
 
     iniciarPartida() {
         try {
@@ -86,7 +64,6 @@ const UI = {
 
     _nuevaRonda() {
         this.aviso = "";
-        this.animadas = new Set();
         this.mostrarRestantes = false;
     },
 
@@ -94,7 +71,29 @@ const UI = {
         return this.juego.equipos[indice].nombre;
     },
 
-    /* ---------- Dibujo ---------- */
+    /** Mensaje de turno: se muestra igual en el panel y en el proyector. */
+    textoTurno() {
+        const j = this.juego;
+        const turno = j.equipoEnTurno;
+        switch (j.fase) {
+            case FASES.ELEGIR_PRIMERO: return "⚡ CARA A CARA: pasa un representante de cada equipo";
+            case FASES.CARA_A_CARA: return `⚡ Cara a cara: responde ${this.nombre(turno)}`;
+            case FASES.DECISION: return `🎯 ${this.nombre(turno)} ganó el cara a cara`;
+            case FASES.JUGANDO: return `🎮 Turno de ${this.nombre(turno)}`;
+            case FASES.ROBO: return `🦹 ¡${this.nombre(turno)} puede ROBAR ${j.banco} puntos! Una sola oportunidad`;
+            case FASES.FIN_RONDA: return `🏁 ${this.nombre(j.ganadorRonda)} se lleva ${j.puntosGanadosRonda} puntos`;
+            default: return "";
+        }
+    },
+
+    textoRonda() {
+        const j = this.juego;
+        return j.esRondaFinal
+            ? `RONDA FINAL · PUNTOS x${j.multiplicador}`
+            : `RONDA ${j.rondaActual} de ${j.totalRondas}`;
+    },
+
+    /* ---------- Dibujo del panel ---------- */
 
     dibujar() {
         const j = this.juego;
@@ -107,68 +106,49 @@ const UI = {
             caja.querySelector(".equipo-puntos").textContent = eq.puntos;
             caja.classList.toggle("en-turno", j.equipoEnTurno === i);
         });
-        $("ronda").textContent = j.esRondaFinal
-            ? `RONDA FINAL · PUNTOS x${j.multiplicador}`
-            : `RONDA ${j.rondaActual} de ${j.totalRondas}`;
+        $("ronda").textContent = this.textoRonda();
         $("ronda").classList.toggle("final", j.esRondaFinal);
         $("banco").textContent = j.banco;
-
         $("pregunta").textContent = j.pregunta.texto;
-        this.dibujarTablero();
 
         // Errores ✕ ✕ ✕ (solo cuentan cuando un equipo tiene el control)
         $("errores").querySelectorAll(".x").forEach((x, i) => x.classList.toggle("activa", i < j.errores));
 
-        this.dibujarTurno();
+        const turno = $("turno");
+        turno.replaceChildren(el("div", { clase: "turno-principal", texto: this.textoTurno() }));
+        if (this.aviso) turno.append(el("div", { clase: "aviso", texto: this.aviso }));
+
+        this.dibujarTarjeta();
         this.dibujarControles();
+        this.publicar();
     },
 
-    dibujarTablero() {
-        const resp = this.juego.pregunta.respuestas;
-        const tablero = $("tablero");
-        tablero.style.gridTemplateRows = `repeat(${Math.ceil(resp.length / 2)}, auto)`;
-        tablero.replaceChildren(...resp.map((r, i) => {
-            const visible = r.revelada || this.mostrarRestantes;
-            const casilla = el("div", { clase: "casilla" });
-            if (!visible) {
-                casilla.append(el("span", { clase: "numero", texto: String(i + 1) }));
-                return casilla;
-            }
-            casilla.classList.add("revelada");
-            if (!r.revelada) casilla.classList.add("no-dicha");
-            if (!this.animadas.has(r)) {
-                casilla.classList.add("animar");
-                this.animadas.add(r);
-            }
-            casilla.append(
-                el("span", { clase: "texto", texto: r.texto }),
-                el("span", { clase: "puntos", texto: String(r.puntos) })
-            );
-            return casilla;
-        }));
-    },
-
-    dibujarTurno() {
+    /** Tarjeta privada del moderador: todas las respuestas; clic para aceptar una. */
+    dibujarTarjeta() {
         const j = this.juego;
-        const turno = j.equipoEnTurno;
-        let msg;
-        switch (j.fase) {
-            case FASES.ELEGIR_PRIMERO:
-                msg = "⚡ CARA A CARA: pasa un representante de cada equipo"; break;
-            case FASES.CARA_A_CARA:
-                msg = `⚡ Cara a cara: responde ${this.nombre(turno)}`; break;
-            case FASES.DECISION:
-                msg = `🎯 ${this.nombre(turno)} ganó el cara a cara`; break;
-            case FASES.JUGANDO:
-                msg = `🎮 Turno de ${this.nombre(turno)}`; break;
-            case FASES.ROBO:
-                msg = `🦹 ¡${this.nombre(turno)} puede ROBAR ${j.banco} puntos! Una sola oportunidad`; break;
-            case FASES.FIN_RONDA:
-                msg = `🏁 ${this.nombre(j.ganadorRonda)} se lleva ${j.puntosGanadosRonda} puntos`; break;
-        }
-        const cont = $("turno");
-        cont.replaceChildren(el("div", { clase: "turno-principal", texto: msg }));
-        if (this.aviso) cont.append(el("div", { clase: "aviso", texto: this.aviso }));
+        const clicable = j.aceptaRespuestas;
+        $("ayuda-tarjeta").textContent = clicable
+            ? "Haz clic en una respuesta para aceptarla."
+            : "Las respuestas se aceptan cuando un equipo está respondiendo.";
+        $("tarjeta-respuestas").replaceChildren(...j.pregunta.respuestas.map((r, i) => {
+            const item = el("li", { clase: "item-tarjeta" + (r.revelada ? " revelada" : "") },
+                el("span", { clase: "item-num", texto: String(i + 1) }),
+                el("span", { clase: "item-cuerpo" },
+                    el("span", { clase: "item-texto", texto: r.texto }),
+                    r.alias.length ? el("small", { clase: "item-alias", texto: r.alias.join(", ") }) : null),
+                el("span", { clase: "item-puntos", texto: r.revelada ? `✔ ${r.puntos}` : String(r.puntos) })
+            );
+            if (clicable && !r.revelada) {
+                item.classList.add("clicable");
+                item.tabIndex = 0;
+                item.title = "Aceptar esta respuesta";
+                item.addEventListener("click", () => this.aplicar(r));
+                item.addEventListener("keydown", ev => {
+                    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.aplicar(r); }
+                });
+            }
+            return item;
+        }));
     },
 
     dibujarControles() {
@@ -178,7 +158,7 @@ const UI = {
 
         if (j.fase === FASES.ELEGIR_PRIMERO) {
             cont.append(
-                el("p", { texto: "Moderador: ¿quién presionó el botón primero?" }),
+                el("p", { texto: "¿Quién presionó el botón primero?" }),
                 el("div", { clase: "fila-botones" },
                     [0, 1].map(i => el("button", {
                         clase: "btn btn-grande", texto: this.nombre(i),
@@ -202,7 +182,7 @@ const UI = {
             const botones = el("div", { clase: "fila-botones" });
             if (!this.mostrarRestantes && j.pregunta.pendientes.length > 0) {
                 botones.append(el("button", {
-                    clase: "btn btn-secundario", texto: "👁 Revelar restantes",
+                    clase: "btn btn-secundario", texto: "👁 Revelar restantes en el proyector",
                     onclick: () => { this.mostrarRestantes = true; Sonidos.revelar(); this.dibujar(); }
                 }));
             }
@@ -218,7 +198,7 @@ const UI = {
         // CARA_A_CARA, JUGANDO o ROBO: caja para escribir la respuesta
         const entrada = el("input", {
             id: "entrada-respuesta", maxlength: "80", autocomplete: "off",
-            placeholder: "Escribe la respuesta y presiona Enter"
+            placeholder: "Escribe lo que dijo el jugador y presiona Enter"
         });
         const errorTexto = j.fase === FASES.ROBO ? "✕ Falló el robo" : "✕ Error";
         const form = el("form", { clase: "form-respuesta" },
@@ -249,6 +229,50 @@ const UI = {
         this.dibujar();
     },
 
+    /* ---------- Proyector ---------- */
+
+    /** Lo que el proyector necesita para dibujarse. Las respuestas ocultas NO se envían. */
+    estadoProyector() {
+        const j = this.juego;
+        const enPartida = ["pantalla-juego", "pantalla-final"].some(id => $(id).classList.contains("activa"));
+        if (!j || !enPartida) {
+            return { pantalla: "espera" };
+        }
+        if (j.fase === FASES.FIN_JUEGO) {
+            const ganador = j.ganador;
+            return {
+                pantalla: "final",
+                ganador: ganador ? ganador.nombre : null,
+                equipos: [...j.equipos].sort((a, b) => b.puntos - a.puntos)
+                    .map(e => ({ nombre: e.nombre, puntos: e.puntos, gano: e === ganador }))
+            };
+        }
+        return {
+            pantalla: "juego",
+            idRonda: `${j.rondaActual}:${j.pregunta.texto}`,
+            ronda: this.textoRonda(),
+            esFinal: j.esRondaFinal,
+            equipos: j.equipos.map(e => ({ nombre: e.nombre, puntos: e.puntos })),
+            enTurno: j.equipoEnTurno,
+            banco: j.banco,
+            pregunta: j.pregunta.texto,
+            respuestas: j.pregunta.respuestas.map(r => {
+                const visible = r.revelada || this.mostrarRestantes;
+                return visible
+                    ? { visible: true, texto: r.texto, puntos: r.puntos, noDicha: !r.revelada }
+                    : { visible: false };
+            }),
+            errores: j.errores,
+            turno: this.textoTurno(),
+            aviso: this.aviso
+        };
+    },
+
+    publicar() {
+        CanalPanel.enviar({ tipo: "estado", estado: this.estadoProyector(), efecto: this.efecto });
+        this.efecto = null;
+    },
+
     /* ---------- Validación de respuestas ---------- */
 
     procesarEntrada(texto) {
@@ -266,7 +290,7 @@ const UI = {
         if (tipo === "parecida") {
             if (respuesta.revelada) return this.aplicar(respuesta); // ya está: no hay nada que confirmar
             Modal.abrir(
-                "Moderador: respuesta dudosa",
+                "Respuesta dudosa",
                 `Se escribió «${texto.trim()}». ¿Cuenta como «${respuesta.texto}»?`,
                 [
                     { texto: "✔ Sí, aceptar", accion: () => this.aplicar(respuesta) },
@@ -282,7 +306,7 @@ const UI = {
             `«${texto.trim()}» no coincide con ninguna respuesta.`,
             [
                 { texto: "✕ Confirmar error", clase: "btn-error", accion: () => this.aplicar(null) },
-                { texto: "Moderador: aceptar manualmente…", clase: "btn-secundario", accion: () => this.elegirManual(texto) }
+                { texto: "Aceptar manualmente…", clase: "btn-secundario", accion: () => this.elegirManual(texto) }
             ]
         );
     },
@@ -291,8 +315,8 @@ const UI = {
     elegirManual(texto) {
         const pendientes = this.juego.pregunta.pendientes;
         Modal.abrir(
-            "Moderador: aceptar manualmente",
-            `¿A qué respuesta corresponde «${texto.trim()}»? (no lo muestres al público 🤫)`,
+            "Aceptar manualmente",
+            `¿A qué respuesta corresponde «${texto.trim()}»?`,
             [
                 ...pendientes.map(r => ({
                     texto: `#${this.juego.pregunta.posicionDe(r)} ${r.texto}`,
@@ -322,14 +346,14 @@ const UI = {
                 break;
             case "error":
                 Sonidos.error();
-                this.mostrarXGrande(r.errores || 1);
+                this.efecto = { tipo: "x", cantidad: r.errores || 1 };
                 if (r.pasaARobo) this.aviso = `✕ ¡Tres errores! El control pasa a ${this.nombre(j.otro(r.equipo))}`;
                 else if (r.ganaControl != null) this.aviso = `✕ ${n} falló · ${this.nombre(r.ganaControl)} gana el control`;
                 else this.aviso = `✕ ${n} falló`;
                 break;
             case "ambosFallaron":
                 Sonidos.error();
-                this.mostrarXGrande(1);
+                this.efecto = { tipo: "x", cantidad: 1 };
                 this.aviso = "✕ Ninguno atinó. ¡Pasan otros dos representantes!";
                 break;
             case "rondaCompleta":
@@ -342,18 +366,11 @@ const UI = {
                 break;
             case "roboFallido":
                 Sonidos.error();
-                this.mostrarXGrande(1);
+                this.efecto = { tipo: "x", cantidad: 1 };
                 this.aviso = `✕ Robo fallido: el banco es para ${this.nombre(r.ganador)}`;
                 break;
         }
         this.dibujar();
-    },
-
-    /** Muestra las X gigantes en pantalla como en la tele. */
-    mostrarXGrande(cantidad) {
-        const capa = el("div", { clase: "x-grande" }, Array.from({ length: cantidad }, () => el("span", { texto: "✕" })));
-        document.body.append(capa);
-        setTimeout(() => capa.remove(), 900);
     },
 
     /* ---------- Pantalla final ---------- */
@@ -367,21 +384,10 @@ const UI = {
             .map(eq => el("div", { clase: "final-fila" + (eq === ganador ? " ganador" : "") },
                 el("span", { texto: eq.nombre }),
                 el("strong", { texto: String(eq.puntos) }))));
-        this.lanzarConfeti();
+        lanzarConfeti($("confeti"));
         mostrarPantalla("final");
+        this.publicar();
         Sonidos.ganador();
-    },
-
-    lanzarConfeti() {
-        const colores = ["#ffd23f", "#ff4d6d", "#3ae374", "#4cc9f0", "#ffffff"];
-        $("confeti").replaceChildren(...Array.from({ length: 70 }, () => {
-            const p = el("span");
-            p.style.left = `${Math.random() * 100}%`;
-            p.style.background = colores[Math.floor(Math.random() * colores.length)];
-            p.style.animationDelay = `${Math.random() * 2}s`;
-            p.style.animationDuration = `${2.5 + Math.random() * 2}s`;
-            return p;
-        }));
     }
 };
 
@@ -411,7 +417,7 @@ const Editor = {
         $("error-agregar").textContent = "";
         $("ok-agregar").textContent = "";
         this.dibujarLista();
-        mostrarPantalla("agregar");
+        irA("agregar");
         $("nueva-pregunta").focus();
     },
 
@@ -507,30 +513,53 @@ const Editor = {
 };
 
 /* ============================================================
- *  ARRANQUE: menú y navegación
+ *  ARRANQUE: menú, navegación y conexión con el proyector
  * ============================================================ */
 
 function actualizarConteo() {
     $("conteo-preguntas").textContent = `${AlmacenPreguntas.todas().length} preguntas en el banco`;
 }
 
+/** Cambia de pantalla en el panel; fuera del juego el proyector muestra la portada. */
 function irA(destino) {
-    if (destino === "agregar") return Editor.abrir();
     if (destino === "config") {
         $("error-config").textContent = "";
         mostrarPantalla("config");
         $("nombre-a").focus();
-        return;
+    } else {
+        mostrarPantalla(destino);
     }
-    mostrarPantalla(destino);
+    if (destino !== "juego" && destino !== "final") UI.publicar();
+}
+
+function actualizarEstadoProyector() {
+    const conectado = CanalPanel.conectado;
+    const nodo = $("estado-proyector");
+    nodo.textContent = conectado ? "● Proyector conectado" : "○ Proyector sin abrir";
+    nodo.classList.toggle("conectado", conectado);
+    $("btn-proyector").textContent = conectado ? "📽 Mostrar proyector" : "📽 Abrir proyector";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     actualizarConteo();
     Editor.iniciar();
 
+    // Cuando el proyector se abre (o se recarga) pide el estado actual
+    CanalPanel.alConectar = () => UI.publicar();
+    CanalPanel.alCambiarConexion = actualizarEstadoProyector;
+    CanalPanel.iniciar();
+
+    $("btn-proyector").addEventListener("click", () => {
+        if (!CanalPanel.abrir()) {
+            Modal.abrir("Ventana bloqueada",
+                "El navegador bloqueó la ventana del proyector. Permite las ventanas emergentes para este archivo, " +
+                "o abre proyector.html desde la misma carpeta.",
+                [{ texto: "Aceptar" }]);
+        }
+    });
+
     document.querySelectorAll("[data-ir]").forEach(b =>
-        b.addEventListener("click", () => irA(b.dataset.ir)));
+        b.addEventListener("click", () => (b.dataset.ir === "agregar" ? Editor.abrir() : irA(b.dataset.ir))));
 
     $("form-config").addEventListener("submit", ev => {
         ev.preventDefault();
@@ -548,12 +577,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     $("btn-abandonar").addEventListener("click", () =>
         Modal.abrir("Abandonar partida", "Se perderá el marcador actual.", [
-            { texto: "Sí, salir al menú", clase: "btn-error", accion: () => mostrarPantalla("menu") },
+            { texto: "Sí, salir al menú", clase: "btn-error", accion: () => irA("menu") },
             { texto: "Seguir jugando", clase: "btn-secundario", accion: () => UI.dibujar() }
         ]));
 
     $("btn-salir").addEventListener("click", () => {
-        mostrarPantalla("salir");
+        irA("salir");
+        if (CanalPanel.ventana && !CanalPanel.ventana.closed) CanalPanel.ventana.close();
         window.close(); // solo funciona si el navegador lo permite
     });
 

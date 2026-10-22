@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyector · 100 Programadores Dijeron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<!-- Pantalla para el público: solo muestra, no tiene controles.
+     La maneja el panel del moderador (index.html). -->
+<body class="modo-proyector">
+
+<!-- ==================== PORTADA / ESPERA ==================== -->
+<section id="pantalla-espera" class="pantalla activa">
+    <h1 class="logo logo-proyector"><span class="logo-100">100</span> PROGRAMADORES<br>DIJERON</h1>
+    <p class="lema">&lt;encuestamos a 100 programadores... y nadie leyó la documentación /&gt;</p>
+    <p class="ayuda-proyector" id="ayuda-proyector">
+        Arrastra esta ventana al proyector y haz <strong>doble clic</strong> para pantalla completa.
+    </p>
+    <p class="nota" id="estado-panel"></p>
+</section>
+
+<!-- ==================== JUEGO ==================== -->
+<section id="pantalla-juego" class="pantalla pantalla-ancha">
+    <header class="marcador">
+        <div class="equipo" id="equipo-0">
+            <span class="equipo-nombre"></span>
+            <span class="equipo-puntos">0</span>
+        </div>
+        <div class="centro-marcador">
+            <div class="ronda" id="ronda"></div>
+            <div class="banco">BANCO <span id="banco">0</span></div>
+        </div>
+        <div class="equipo" id="equipo-1">
+            <span class="equipo-nombre"></span>
+            <span class="equipo-puntos">0</span>
+        </div>
+    </header>
+
+    <h2 class="pregunta" id="pregunta"></h2>
+
+    <div class="tablero" id="tablero"></div>
+
+    <div class="errores" id="errores" aria-label="Errores">
+        <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+    </div>
+
+    <div class="turno" id="turno"></div>
+</section>
+
+<!-- ==================== FINAL ==================== -->
+<section id="pantalla-final" class="pantalla">
+    <div class="confeti" id="confeti" aria-hidden="true"></div>
+    <p class="final-sub">🏆 Y el ganador es... 🏆</p>
+    <h1 class="final-ganador" id="final-ganador"></h1>
+    <div class="final-marcador" id="final-marcador"></div>
+</section>
+
+<script src="js/dom.js"></script>
+<script src="js/canal.js"></script>
+<script src="js/proyector.js"></script>
+</body>
+</html>
