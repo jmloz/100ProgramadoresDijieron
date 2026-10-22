@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100 Programadores Dijeron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<button id="btn-sonido" class="btn-icono" title="Activar/desactivar sonido">🔊</button>
+
+<!-- ==================== MENÚ PRINCIPAL ==================== -->
+<section id="pantalla-menu" class="pantalla activa">
+    <h1 class="logo"><span class="logo-100">100</span> PROGRAMADORES<br>DIJERON</h1>
+    <p class="lema">&lt;encuestamos a 100 programadores... y nadie leyó la documentación /&gt;</p>
+    <nav class="menu">
+        <button class="btn btn-grande" data-ir="config">▶ Jugar</button>
+        <button class="btn btn-grande" data-ir="agregar">＋ Agregar pregunta</button>
+        <button class="btn btn-grande" data-ir="instrucciones">? Ver instrucciones</button>
+        <button class="btn btn-grande btn-secundario" id="btn-salir">⏻ Salir</button>
+    </nav>
+    <p class="nota" id="conteo-preguntas"></p>
+</section>
+
+<!-- ==================== CONFIGURACIÓN ==================== -->
+<section id="pantalla-config" class="pantalla">
+    <h2>Nombres de los equipos</h2>
+    <form id="form-config" class="tarjeta form-config">
+        <label>Equipo 1
+            <input id="nombre-a" maxlength="24" placeholder="Equipo A">
+        </label>
+        <label>Equipo 2
+            <input id="nombre-b" maxlength="24" placeholder="Equipo B">
+        </label>
+        <p class="error-form" id="error-config"></p>
+        <div class="fila-botones">
+            <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+            <button type="submit" class="btn">¡A jugar!</button>
+        </div>
+    </form>
+</section>
+
+<!-- ==================== JUEGO ==================== -->
+<section id="pantalla-juego" class="pantalla">
+    <header class="marcador">
+        <div class="equipo" id="equipo-0">
+            <span class="equipo-nombre"></span>
+            <span class="equipo-puntos">0</span>
+        </div>
+        <div class="centro-marcador">
+            <div class="ronda" id="ronda"></div>
+            <div class="banco">BANCO <span id="banco">0</span></div>
+        </div>
+        <div class="equipo" id="equipo-1">
+            <span class="equipo-nombre"></span>
+            <span class="equipo-puntos">0</span>
+        </div>
+    </header>
+
+    <h2 class="pregunta" id="pregunta"></h2>
+
+    <div class="tablero" id="tablero"></div>
+
+    <div class="errores" id="errores" aria-label="Errores">
+        <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
+    </div>
+
+    <div class="turno" id="turno"></div>
+
+    <div class="controles" id="controles"></div>
+
+    <button class="btn btn-mini btn-secundario" id="btn-abandonar">Abandonar partida</button>
+</section>
+
+<!-- ==================== AGREGAR PREGUNTA ==================== -->
+<section id="pantalla-agregar" class="pantalla">
+    <h2>Agregar pregunta</h2>
+    <form id="form-agregar" class="tarjeta form-agregar">
+        <label>Pregunta
+            <input id="nueva-pregunta" maxlength="140" placeholder='Ej. "Algo que se rompe un viernes a las 5 pm"'>
+        </label>
+        <p class="nota">Entre 5 y 8 respuestas. Puntos enteros; la suma no debe pasar de 100.
+            Sinónimos separados por comas (opcional).</p>
+        <div class="tabla-respuestas">
+            <div class="encabezado"><span>#</span><span>Respuesta</span><span>Puntos</span><span>Sinónimos</span></div>
+            <div id="filas-respuestas"></div>
+        </div>
+        <p class="suma">Suma: <strong id="suma-puntos">0</strong> / 100</p>
+        <p class="error-form" id="error-agregar"></p>
+        <p class="ok-form" id="ok-agregar"></p>
+        <div class="fila-botones">
+            <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+            <button type="submit" class="btn">Guardar pregunta</button>
+        </div>
+    </form>
+
+    <div class="tarjeta">
+        <h3>Preguntas agregadas por ti</h3>
+        <ul id="lista-personalizadas" class="lista-personalizadas"></ul>
+        <div class="fila-botones">
+            <button type="button" class="btn btn-mini" id="btn-exportar">Exportar JSON</button>
+            <label class="btn btn-mini">Importar JSON
+                <input type="file" id="input-importar" accept=".json,application/json" hidden>
+            </label>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== INSTRUCCIONES ==================== -->
+<section id="pantalla-instrucciones" class="pantalla">
+    <h2>¿Cómo se juega?</h2>
+    <div class="tarjeta instrucciones">
+        <ol>
+            <li><strong>Dos equipos</strong> compiten durante <strong>3 rondas normales</strong> y una
+                <strong>ronda final</strong> donde los puntos valen <strong>doble</strong>.</li>
+            <li>Cada ronda muestra una pregunta de encuesta con 5 a 8 respuestas ocultas,
+                ordenadas de la más popular a la menos popular.</li>
+            <li><strong>Cara a cara:</strong> un representante de cada equipo. El moderador marca quién
+                presionó primero; ese jugador responde. Si atina la respuesta #1, gana el control.
+                Si no, responde el otro y gana quien tenga la respuesta con más puntos.</li>
+            <li>El ganador del cara a cara decide si <strong>juega o pasa</strong>.</li>
+            <li>El equipo con el control adivina las respuestas restantes. Cada acierto suma al
+                <strong>banco</strong>. Con <strong>3 errores (✕ ✕ ✕)</strong> el otro equipo
+                tiene <strong>una</strong> oportunidad de robar el banco.</li>
+            <li>Quien gane la ronda se lleva el banco. Al final gana el equipo con más puntos.</li>
+        </ol>
+        <h3>Para el moderador</h3>
+        <ul>
+            <li>No importan mayúsculas, acentos ni espacios: <em>"STACK  overflów"</em> = <em>"stackoverflow"</em>.</li>
+            <li>Si la respuesta es <strong>dudosa</strong>, el juego pregunta al moderador si la acepta.</li>
+            <li>Si no coincide con nada, el moderador puede confirmar el error o
+                <strong>aceptarla manualmente</strong> eligiendo a qué respuesta corresponde.</li>
+            <li>El botón <strong>✕ Error</strong> marca un error directo (no contestó, se acabó el tiempo, etc.).</li>
+            <li>Una respuesta que ya está en el tablero no cuenta como error.</li>
+        </ul>
+    </div>
+    <button class="btn" data-ir="menu">← Menú</button>
+</section>
+
+<!-- ==================== PANTALLA FINAL ==================== -->
+<section id="pantalla-final" class="pantalla">
+    <div class="confeti" id="confeti" aria-hidden="true"></div>
+    <p class="final-sub">🏆 Y el ganador es... 🏆</p>
+    <h1 class="final-ganador" id="final-ganador"></h1>
+    <div class="final-marcador" id="final-marcador"></div>
+    <div class="fila-botones">
+        <button class="btn btn-grande" id="btn-revancha">Revancha</button>
+        <button class="btn btn-grande btn-secundario" data-ir="menu">Menú principal</button>
+    </div>
+</section>
+
+<!-- ==================== SALIR ==================== -->
+<section id="pantalla-salir" class="pantalla">
+    <h1 class="logo">¡Gracias por jugar!</h1>
+    <p class="lema">Proceso terminado con código de salida 0. Ya puedes cerrar esta pestaña.</p>
+    <button class="btn" data-ir="menu">Volver al menú</button>
+</section>
+
+<!-- ==================== MODAL DEL MODERADOR ==================== -->
+<div class="modal-fondo" id="modal" hidden>
+    <div class="modal tarjeta" role="dialog" aria-modal="true">
+        <h3 id="modal-titulo"></h3>
+        <p id="modal-texto"></p>
+        <div id="modal-opciones" class="modal-opciones"></div>
+    </div>
+</div>
+
+<!-- Orden importante: cada archivo usa lo definido en los anteriores -->
+<script src="js/preguntas.js"></script>
+<script src="js/validador.js"></script>
+<script src="js/modelos.js"></script>
+<script src="js/juego.js"></script>
+<script src="js/almacen.js"></script>
+<script src="js/sonidos.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
