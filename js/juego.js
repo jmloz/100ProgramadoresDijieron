@@ -20,22 +20,51 @@ const FASES = Object.freeze({
     FIN_JUEGO: "finJuego"
 });
 
+/** Reglas por defecto; el moderador puede cambiarlas al configurar la partida. */
 const RONDAS_NORMALES = 3;
 const MAX_ERRORES = 3;
+const OPCIONES_POR_DEFECTO = Object.freeze({
+    rondas: RONDAS_NORMALES,       // rondas normales (cada una usa una pregunta distinta)
+    rondaFinal: true,              // + una ronda final con puntos multiplicados
+    multiplicadorFinal: 2,
+    respuestas: RESPUESTAS_POR_RONDA,  // casillas en el tablero (las más populares de cada pregunta)
+    maxErrores: MAX_ERRORES        // errores para perder el control y pasar al robo
+});
+
+/** Limpia las opciones: valores fuera de rango vuelven al valor por defecto. */
+function normalizarOpciones(o = {}) {
+    const entero = (v, min, max, def) => (Number.isInteger(v) && v >= min && v <= max ? v : def);
+    const d = OPCIONES_POR_DEFECTO;
+    return {
+        rondas: entero(o.rondas, 1, 10, d.rondas),
+        rondaFinal: typeof o.rondaFinal === "boolean" ? o.rondaFinal : d.rondaFinal,
+        multiplicadorFinal: entero(o.multiplicadorFinal, 2, 3, d.multiplicadorFinal),
+        respuestas: entero(o.respuestas, 3, MAX_RESPUESTAS, d.respuestas),
+        maxErrores: entero(o.maxErrores, 1, 5, d.maxErrores)
+    };
+}
+
+/** Cuántas preguntas necesita una partida con esas opciones. */
+function preguntasNecesarias(opciones) {
+    const o = normalizarOpciones(opciones);
+    return o.rondas + (o.rondaFinal ? 1 : 0);
+}
 
 class Juego {
     /**
      * @param {string} nombreA
      * @param {string} nombreB
      * @param {Array} bancoDatos  preguntas en formato plano (ver preguntas.js)
+     * @param {object} opciones   rondas, rondaFinal, multiplicadorFinal, respuestas, maxErrores
      * @param {Function} aleatorio función tipo Math.random (inyectable para pruebas)
      */
-    constructor(nombreA, nombreB, bancoDatos, aleatorio = Math.random) {
+    constructor(nombreA, nombreB, bancoDatos, opciones = {}, aleatorio = Math.random) {
         this.equipos = [
             new Equipo(nombreA || "Equipo A"),
             new Equipo(nombreB || "Equipo B")
         ];
-        this.totalRondas = RONDAS_NORMALES + 1; // + ronda final doble
+        this.opciones = normalizarOpciones(opciones);
+        this.totalRondas = preguntasNecesarias(this.opciones);
         this.aleatorio = aleatorio;
         this.preguntas = this._elegirPreguntas(bancoDatos, this.totalRondas);
         this.rondaActual = 0;
@@ -54,8 +83,13 @@ class Juego {
             const j = Math.floor(this.aleatorio() * (i + 1));
             [copia[i], copia[j]] = [copia[j], copia[i]];
         }
-        // Se crean objetos nuevos para que "revelada" empiece en false cada partida
-        return copia.slice(0, cantidad).map(d => Pregunta.desdeDatos(d));
+        // Se crean objetos nuevos para que "revelada" empiece en false cada partida.
+        // Solo entran las respuestas más populares: todas las rondas tienen el mismo número de casillas.
+        return copia.slice(0, cantidad).map(d => {
+            const pregunta = Pregunta.desdeDatos(d);
+            pregunta.respuestas = pregunta.respuestas.slice(0, this.opciones.respuestas);
+            return pregunta;
+        });
     }
 
     iniciarRonda() {
@@ -77,11 +111,15 @@ class Juego {
     /* ---------- Consultas ---------- */
 
     get esRondaFinal() {
-        return this.rondaActual === this.totalRondas;
+        return this.opciones.rondaFinal && this.rondaActual === this.totalRondas;
     }
 
     get multiplicador() {
-        return this.esRondaFinal ? 2 : 1;
+        return this.esRondaFinal ? this.opciones.multiplicadorFinal : 1;
+    }
+
+    get maxErrores() {
+        return this.opciones.maxErrores;
     }
 
     get esUltimaRonda() {
@@ -203,7 +241,7 @@ class Juego {
         const equipo = this.equipoControl;
         if (!respuesta) {
             this.errores++;
-            if (this.errores >= MAX_ERRORES) {
+            if (this.errores >= this.maxErrores) {
                 this.fase = FASES.ROBO;
                 return { tipo: "error", equipo, errores: this.errores, pasaARobo: true };
             }
@@ -243,6 +281,7 @@ class Juego {
         return {
             equipos: this.equipos.map(e => ({ nombre: e.nombre, puntos: e.puntos })),
             totalRondas: this.totalRondas,
+            opciones: this.opciones,
             preguntas: this.preguntas.map(p => p.exportar()),
             rondaActual: this.rondaActual,
             banco: this.banco,
@@ -266,6 +305,8 @@ class Juego {
         j.aleatorio = Math.random;
         j.equipos = d.equipos.map(e => Object.assign(new Equipo(e.nombre), { puntos: e.puntos }));
         j.totalRondas = d.totalRondas;
+        // Las partidas guardadas antes de que existieran las opciones usan las reglas por defecto
+        j.opciones = normalizarOpciones(d.opciones);
         j.preguntas = d.preguntas.map(Pregunta.importar);
         j.rondaActual = d.rondaActual;
         j.pregunta = j.preguntas[j.rondaActual - 1];
@@ -295,4 +336,4 @@ class Juego {
     }
 }
 
-if (typeof module !== "undefined") module.exports = { Juego, FASES, RONDAS_NORMALES, MAX_ERRORES };
+if (typeof module !== "undefined") module.exports = { Juego, FASES, RONDAS_NORMALES, MAX_ERRORES, normalizarOpciones, preguntasNecesarias };

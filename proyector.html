@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proyector · 100 Programadores Dijeron</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Proyector · 100 Programadores Dijeron · PROXY 2026</title>
+    <link rel="icon" href="img/proxy-logo.webp">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <!-- Pantalla para el público: solo muestra, no tiene controles.
@@ -14,12 +13,42 @@
 
 <!-- ==================== PORTADA / ESPERA ==================== -->
 <section id="pantalla-espera" class="pantalla activa">
-    <h1 class="logo logo-proyector"><span class="logo-100">100</span> PROGRAMADORES<br>DIJERON</h1>
-    <p class="lema">&lt;encuestamos a 100 programadores... y nadie leyó la documentación /&gt;</p>
+    <pre class="boot" aria-hidden="true"><span style="--i:0">PROXY BIOS v15.0 · RAM 640K (debería bastar para cualquiera)</span><span style="--i:1">Encuestando a 100 programadores ......... <b class="ok">[ OK ]</b></span><span style="--i:2">Montando /dev/tablero ................... <b class="ok">[ OK ]</b></span><span style="--i:3">Leyendo la documentación ................ <b class="ok">[SKIP]</b></span></pre>
+<div class="marca">
+        <img class="marca-x" src="img/proxy-logo.webp" alt="">
+        <div class="marca-textos">
+            <span class="marca-congreso">CONGRESO</span>
+            <span class="marca-proxy">PROXY 2026</span>
+        </div>
+        <span class="marca-edicion">EDICIÓN XV</span>
+    </div>
+    <div class="portada-centro">
+    <div class="letrero letrero-portada">
+        <img src="img/robot-letrero.webp" alt="">
+        <header class="letrero-texto logo">
+            <h1 class="solo-lector">100 Programadores Dijeron</h1>
+<pre class="logo-ascii" aria-hidden="true"> ██╗ ██████╗  ██████╗
+███║██╔═████╗██╔═████╗
+╚██║██║██╔██║██║██╔██║
+ ██║████╔╝██║████╔╝██║
+ ██║╚██████╔╝╚██████╔╝
+ ╚═╝ ╚═════╝  ╚═════╝</pre>
+            <span class="logo-texto extruido" aria-hidden="true">PROGRAMADORES DIJERON</span>
+        </header>
+    </div>
+    <p class="globo" id="globo-robot" aria-live="polite"></p>
+    </div>
+    <p class="lema-proxy">Crea, conecta y conquista.</p>
+    <p class="cuenta" id="cuenta-inicio" hidden></p>
+    <p class="prompt"><span class="ruta">root@proxy:~$</span> esperando al moderador <span class="cursor">█</span></p>
     <p class="ayuda-proyector" id="ayuda-proyector">
         Arrastra esta ventana al proyector y haz <strong>doble clic</strong> para pantalla completa.
     </p>
     <p class="nota" id="estado-panel"></p>
+    <div class="tira-patrocinadores">
+        <span class="tira-titulo">PATROCINADORES</span>
+        <div class="marquesina"><div class="marquesina-pista" id="marquesina"></div></div>
+    </div>
 </section>
 
 <!-- ==================== JUEGO ==================== -->
@@ -30,6 +59,7 @@
             <span class="equipo-puntos">0</span>
         </div>
         <div class="centro-marcador">
+            <div class="marcador-marca"><img src="img/proxy-logo.webp" alt=""><span>PROXY 2026</span></div>
             <div class="ronda" id="ronda"></div>
             <div class="banco">BANCO <span id="banco">0</span></div>
         </div>
@@ -44,10 +74,9 @@
     <div class="tablero" id="tablero"></div>
 
     <div class="fila-estado">
-        <div class="errores" id="errores" aria-label="Errores">
-            <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
-        </div>
+        <div class="errores" id="errores" aria-label="Errores"></div>
         <div class="reloj" id="reloj" hidden></div>
+        <div class="robot robot-juego" id="robot-juego" data-robot="normal"></div>
     </div>
 
     <div class="turno" id="turno"></div>
@@ -56,10 +85,53 @@
 <!-- ==================== FINAL ==================== -->
 <section id="pantalla-final" class="pantalla">
     <div class="confeti" id="confeti" aria-hidden="true"></div>
-    <p class="final-sub">🏆 Y el ganador es... 🏆</p>
-    <h1 class="final-ganador" id="final-ganador"></h1>
-    <div class="final-marcador" id="final-marcador"></div>
+    <div class="letrero letrero-final">
+        <img src="img/robot-letrero.webp" alt="">
+        <div class="letrero-texto">
+            <p class="final-sub">★ GANADOR ★</p>
+            <h1 class="final-ganador" id="final-ganador"></h1>
+        </div>
+    </div>
+    <div class="fila-final">
+        <img class="robot-corona" src="img/robot-corona.webp" alt="">
+        <div class="final-marcador" id="final-marcador"></div>
+    </div>
+    <div class="creditos">
+        <p>Una actividad del <strong>Congreso PROXY 2026</strong> · Ingeniería en Sistemas Computacionales e Informática · TecNM Instituto Tecnológico de Hermosillo</p>
+        <div class="logos-patrocinadores" id="final-patrocinadores"></div>
+    </div>
 </section>
+
+<!-- ==================== TRANSICIÓN ENTRE RONDAS ==================== -->
+<!-- Escena 1 (solo en la versión larga): el robot "programa" la ronda en su laptop.
+     Escena 2: el robot baja con el letrero de la ronda y los patrocinadores. -->
+<div class="transicion" id="transicion" hidden aria-hidden="true">
+    <div class="escena-programando" id="escena-programando">
+        <div class="estacion">
+            <div class="codigo-flotante" aria-hidden="true"><span>{ }</span><span>&lt;/&gt;</span><span>01</span><span>;</span><span>=&gt;</span></div>
+            <div class="robot robot-programador" id="robot-programador" data-robot="normal"></div>
+            <div class="laptop"><img src="img/proxy-logo.webp" alt=""></div>
+            <div class="escritorio"></div>
+        </div>
+        <div class="terminal">
+            <div class="terminal-barra"><i></i><i></i><i></i><span>robot@proxy: ~/100-programadores</span></div>
+            <div class="terminal-texto" id="terminal-texto"></div>
+        </div>
+    </div>
+    <div class="escena-ronda" id="escena-ronda">
+        <div class="letrero letrero-ronda">
+            <img src="img/robot-letrero.webp" alt="">
+            <div class="letrero-texto">
+                <span class="transicion-titulo extruido" id="transicion-titulo"></span>
+                <span class="transicion-sub" id="transicion-sub"></span>
+            </div>
+        </div>
+        <div class="transicion-patrocinadores" id="transicion-patrocinadores">
+            <p>Gracias a nuestros patrocinadores</p>
+            <div class="logos-patrocinadores" id="transicion-logos"></div>
+        </div>
+    </div>
+</div>
 
 <script src="js/dom.js"></script>
 <script src="js/canal.js"></script>

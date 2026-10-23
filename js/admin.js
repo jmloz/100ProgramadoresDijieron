@@ -42,6 +42,42 @@ const Modal = {
 };
 
 /* ============================================================
+ *  AJUSTES DE PRESENTACIÓN: tema (oscuro/claro) y hora de inicio
+ *  de la actividad. Se guardan en el navegador y se mandan al
+ *  proyector junto con cada estado.
+ * ============================================================ */
+
+const Ajustes = {
+    clave: "pd-presentacion",
+    tema: "oscuro",
+    inicio: "",            // "HH:MM" o vacío: la portada del proyector muestra la cuenta regresiva
+
+    cargar() {
+        const g = Guardado.leer(this.clave, {});
+        this.tema = g.tema === "claro" ? "claro" : "oscuro";
+        this.inicio = typeof g.inicio === "string" ? g.inicio : "";
+        this.aplicar();
+    },
+
+    guardar() {
+        Guardado.escribir(this.clave, { tema: this.tema, inicio: this.inicio });
+        this.aplicar();
+        UI.publicar();
+    },
+
+    aplicar() {
+        document.documentElement.dataset.tema = this.tema;
+        $("btn-tema").textContent = this.tema === "claro" ? "☾ Tema oscuro" : "☀ Tema claro";
+        $("hora-inicio").value = this.inicio;
+    },
+
+    alternarTema() {
+        this.tema = this.tema === "claro" ? "oscuro" : "claro";
+        this.guardar();
+    }
+};
+
+/* ============================================================
  *  CONTROLADOR DE LA PARTIDA
  * ============================================================ */
 
@@ -66,7 +102,7 @@ const UI = {
     iniciarPartida() {
         const banco = AlmacenPreguntas.filtrar(this.config.categorias, this.config.dificultad);
         try {
-            this.juego = new Juego(this.config.nombres[0], this.config.nombres[1], banco);
+            this.juego = new Juego(this.config.nombres[0], this.config.nombres[1], banco, this.config);
         } catch (e) {
             Modal.abrir("No se puede iniciar", e.message, [{ texto: "Aceptar" }]);
             return;
@@ -75,6 +111,7 @@ const UI = {
         this.escribiendo = false;
         this.temporizador.detener();
         this._nuevaRonda();
+        Sonidos.transicion(this.config.transicion, this.juego.esRondaFinal, true);
         mostrarPantalla("juego");
         this.dibujar();
     },
@@ -206,8 +243,7 @@ const UI = {
         const v = this.temporizador.vista;
         nodo.hidden = !v;
         if (!v) return;
-        nodo.textContent = v.pausado ? `⏸ ${v.restante}` : String(v.restante);
-        nodo.style.setProperty("--avance", `${(v.restante / v.total) * 100}%`);
+        nodo.textContent = textoReloj(v, 12);
         nodo.classList.toggle("urgente", v.restante <= 5);
         nodo.classList.toggle("pausado", v.pausado);
         nodo.title = v.pausado ? "Tiempo en pausa (Espacio para reanudar)" : "Segundos para responder";
@@ -255,7 +291,7 @@ const UI = {
         $("pregunta").textContent = j.pregunta.texto;
 
         // Errores ✕ ✕ ✕ (solo cuentan cuando un equipo tiene el control)
-        $("errores").querySelectorAll(".x").forEach((x, i) => x.classList.toggle("activa", i < j.errores));
+        dibujarErrores($("errores"), j.errores, j.maxErrores);
 
         const turno = $("turno");
         turno.replaceChildren(el("div", { clase: "turno-principal", texto: this.textoTurno() }));
@@ -332,7 +368,7 @@ const UI = {
                 botones.append(this._boton("👁 Revelar restantes", "R", "btn-secundario", () => this.revelarRestantes()));
             }
             const texto = j.esUltimaRonda ? "🏆 Ver resultados"
-                : (j.rondaActual + 1 === j.totalRondas ? "▶ ¡Ronda final!" : "▶ Siguiente ronda");
+                : (j.opciones.rondaFinal && j.rondaActual + 1 === j.totalRondas ? "▶ ¡Ronda final!" : "▶ Siguiente ronda");
             botones.append(this._boton(texto, "Enter", "btn-grande", () => this.siguienteRonda()));
             cont.append(botones);
             return;
@@ -370,6 +406,7 @@ const UI = {
         if (this.juego.fase !== FASES.FIN_RONDA) return;
         this.recordar();
         this.juego.siguienteRonda();
+        if (this.juego.fase !== FASES.FIN_JUEGO) Sonidos.transicion(this.config.transicion, this.juego.esRondaFinal);
         this._nuevaRonda(); // antes de dibujar, para no destapar el tablero nuevo
         this.dibujar();
     },
@@ -406,6 +443,8 @@ const UI = {
                     : { visible: false };
             }),
             errores: j.errores,
+            maxErrores: j.maxErrores,
+            transicion: this.config.transicion,
             tiempo: this.temporizador.vista,
             turno: this.textoTurno(),
             aviso: this.aviso
@@ -413,7 +452,13 @@ const UI = {
     },
 
     publicar() {
-        CanalPanel.enviar({ tipo: "estado", estado: this.estadoProyector(), efecto: this.efecto });
+        const estado = {
+            ...this.estadoProyector(),
+            tema: Ajustes.tema,
+            inicio: Ajustes.inicio,
+            patrocinadores: this.config.patrocinadores !== false
+        };
+        CanalPanel.enviar({ tipo: "estado", estado, efecto: this.efecto });
         this.efecto = null;
     },
 
@@ -496,7 +541,7 @@ const UI = {
             case "error":
                 Sonidos.error();
                 this.efecto = { tipo: "x", cantidad: r.errores || 1 };
-                if (r.pasaARobo) this.aviso = `✕ ¡Tres errores! El control pasa a ${this.nombre(j.otro(r.equipo))}`;
+                if (r.pasaARobo) this.aviso = `✕ ¡${j.maxErrores === 1 ? "Error" : `${j.maxErrores} errores`}! El control pasa a ${this.nombre(j.otro(r.equipo))}`;
                 else if (r.ganaControl != null) this.aviso = `✕ ${n} falló · ${this.nombre(r.ganaControl)} gana el control`;
                 else this.aviso = `✕ ${n} falló`;
                 break;
@@ -506,11 +551,13 @@ const UI = {
                 this.aviso = "✕ Ninguno atinó. ¡Pasan otros dos representantes!";
                 break;
             case "rondaCompleta":
-                Sonidos.ganador();
+                Sonidos.rondaGanada();
+                this.efecto = { tipo: "festejo" };
                 this.aviso = `🎉 ¡${this.nombre(r.ganador)} destapó todo el tablero!`;
                 break;
             case "roboExitoso":
-                Sonidos.ganador();
+                Sonidos.rondaGanada();
+                this.efecto = { tipo: "festejo" };
                 this.aviso = `🦹 ¡${n} robó el banco con «${r.respuesta.texto}»!`;
                 break;
             case "roboFallido":
@@ -623,6 +670,13 @@ const Configuracion = {
         $("tiempo-cara").value = c.tiempoCara;
         $("tiempo-turno").value = c.tiempoTurno;
         $("dificultad").value = c.dificultad;
+        const o = normalizarOpciones(c);
+        $("op-rondas").value = o.rondas;
+        $("op-final").value = o.rondaFinal ? o.multiplicadorFinal : 0;
+        $("op-respuestas").value = o.respuestas;
+        $("op-errores").value = o.maxErrores;
+        $("op-transicion").value = ["larga", "corta", "no"].includes(c.transicion) ? c.transicion : "larga";
+        $("op-patrocinadores").checked = c.patrocinadores !== false;
 
         $("lista-categorias").replaceChildren(...AlmacenPreguntas.categorias().map(cat =>
             el("label", { clase: "check" },
@@ -638,11 +692,31 @@ const Configuracion = {
         return [...document.querySelectorAll("#lista-categorias input:checked")].map(i => i.value);
     },
 
+    /** Reglas elegidas en el formulario. */
+    leerOpciones() {
+        const final = Number($("op-final").value);
+        return normalizarOpciones({
+            rondas: Number($("op-rondas").value),
+            rondaFinal: final > 0,
+            multiplicadorFinal: final > 0 ? final : 2,
+            respuestas: Number($("op-respuestas").value),
+            maxErrores: Number($("op-errores").value)
+        });
+    },
+
     actualizarConteo() {
+        const o = this.leerOpciones();
+        const necesarias = preguntasNecesarias(o);
         const n = AlmacenPreguntas.filtrar(this.categoriasMarcadas(), $("dificultad").value).length;
         const nodo = $("conteo-filtro");
-        nodo.textContent = `${n} pregunta(s) disponibles · se necesitan al menos ${RONDAS_NORMALES + 1}`;
-        nodo.classList.toggle("insuficiente", n < RONDAS_NORMALES + 1);
+        nodo.textContent = `${n} pregunta(s) disponibles · se necesitan ${necesarias}`;
+        nodo.classList.toggle("insuficiente", n < necesarias);
+        $("resumen-partida").textContent =
+            `Partida de ${necesarias} ${necesarias === 1 ? "pregunta" : "preguntas"}: ` +
+            `${o.rondas} ${o.rondas === 1 ? "ronda normal" : "rondas normales"}` +
+            (o.rondaFinal ? ` + ronda final (puntos x${o.multiplicadorFinal})` : " sin ronda final") +
+            ` · ${o.respuestas} respuestas en el tablero · ${o.maxErrores} ${o.maxErrores === 1 ? "error" : "errores"} por turno. ` +
+            "Si una pregunta tiene menos respuestas, se muestran las que tenga.";
     },
 
     leerTiempo(id) {
@@ -665,11 +739,17 @@ const Configuracion = {
         const todas = AlmacenPreguntas.categorias();
         const dificultad = $("dificultad").value;
         const categorias = marcadas.length === todas.length ? null : marcadas; // null = incluye categorías nuevas
-        if (AlmacenPreguntas.filtrar(categorias, dificultad).length < RONDAS_NORMALES + 1) {
-            return error(`Con ese filtro no alcanzan las preguntas: se necesitan al menos ${RONDAS_NORMALES + 1}.`);
+        const opciones = this.leerOpciones();
+        const necesarias = preguntasNecesarias(opciones);
+        if (AlmacenPreguntas.filtrar(categorias, dificultad).length < necesarias) {
+            return error(`Con ese filtro no alcanzan las preguntas: se necesitan ${necesarias}.`);
         }
 
-        UI.config = { ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, categorias, dificultad };
+        UI.config = {
+            ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, categorias, dificultad, ...opciones,
+            transicion: $("op-transicion").value,
+            patrocinadores: $("op-patrocinadores").checked
+        };
         AlmacenConfig.guardar(UI.config);
         UI.iniciarPartida();
     }
@@ -714,10 +794,12 @@ function actualizarEstadoProyector() {
     const nodo = $("estado-proyector");
     nodo.textContent = conectado ? "● Proyector conectado" : "○ Proyector sin abrir";
     nodo.classList.toggle("conectado", conectado);
-    $("btn-proyector").textContent = conectado ? "📽 Mostrar proyector" : "📽 Abrir proyector";
+    $("btn-proyector").textContent = conectado ? "▣ Mostrar proyector" : "▣ Abrir proyector";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    dibujarRobots();
+    Ajustes.cargar();
     UI.iniciar();
     actualizarConteo();
     actualizarMenu();
@@ -782,6 +864,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     $("btn-sonido").addEventListener("click", ev => {
-        ev.currentTarget.textContent = Sonidos.alternar() ? "🔊" : "🔇";
+        ev.currentTarget.textContent = Sonidos.alternar() ? "♪ ON" : "♪ OFF";
+    });
+    $("btn-musica").addEventListener("click", ev => {
+        const activa = Musica.alternar();
+        ev.currentTarget.textContent = activa ? "♫ Música ON" : "♫ Música OFF";
+        ev.currentTarget.classList.toggle("btn-secundario", !activa);
+    });
+    $("btn-tema").addEventListener("click", () => Ajustes.alternarTema());
+    $("hora-inicio").addEventListener("change", ev => {
+        Ajustes.inicio = ev.target.value;
+        Ajustes.guardar();
     });
 });

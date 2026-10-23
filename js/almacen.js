@@ -114,7 +114,16 @@ const AlmacenConfig = {
         tiempoCara: 10,        // segundos para responder en el cara a cara (0 = sin tiempo)
         tiempoTurno: 20,       // segundos por respuesta con el control y en el robo
         categorias: null,      // null = todas
-        dificultad: "todas"
+        dificultad: "todas",
+        // Reglas (ver OPCIONES_POR_DEFECTO en juego.js)
+        rondas: 3,
+        rondaFinal: true,
+        multiplicadorFinal: 2,
+        respuestas: 5,
+        maxErrores: 3,
+        // Presentación en el proyector
+        transicion: "larga",   // "larga" (robot programando), "corta" o "no"
+        patrocinadores: true
     }),
 
     cargar() {

@@ -3,23 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel del moderador · 100 Programadores Dijeron</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Panel del moderador · 100 Programadores Dijeron · PROXY 2026</title>
+    <link rel="icon" href="img/proxy-logo.webp">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
 <!-- Barra fija: estado de la ventana del proyector y sonido -->
 <div class="barra-panel">
-    <span class="barra-titulo">🎙 Panel del moderador</span>
+    <span class="barra-titulo"><span class="ruta">moderador@proxy:~$</span> panel</span>
     <span class="estado-proyector" id="estado-proyector">○ Proyector sin abrir</span>
-    <button class="btn btn-mini" id="btn-proyector">📽 Abrir proyector</button>
-    <button id="btn-sonido" class="btn btn-mini btn-secundario" title="Activar/desactivar sonido">🔊</button>
+    <button class="btn btn-mini" id="btn-proyector">▣ Abrir proyector</button>
+    <button id="btn-sonido" class="btn btn-mini btn-secundario" title="Activar/desactivar todos los sonidos">♪ ON</button>
+    <button id="btn-musica" class="btn btn-mini btn-secundario" title="Música de fondo chiptune">♫ Música OFF</button>
+    <button id="btn-tema" class="btn btn-mini btn-secundario" title="Tema claro para cuando el auditorio tiene las luces encendidas">☀ Tema claro</button>
 </div>
 
 <!-- ==================== MENÚ PRINCIPAL ==================== -->
 <section id="pantalla-menu" class="pantalla activa">
-    <h1 class="logo"><span class="logo-100">100</span> PROGRAMADORES<br>DIJERON</h1>
+<div class="marca">
+        <img class="marca-x" src="img/proxy-logo.webp" alt="">
+        <div class="marca-textos">
+            <span class="marca-congreso">CONGRESO</span>
+            <span class="marca-proxy">PROXY 2026</span>
+        </div>
+        <span class="marca-edicion">EDICIÓN XV</span>
+    </div>
+    <header class="logo">
+        <h1 class="solo-lector">100 Programadores Dijeron</h1>
+<pre class="logo-ascii" aria-hidden="true"> ██╗ ██████╗  ██████╗
+███║██╔═████╗██╔═████╗
+╚██║██║██╔██║██║██╔██║
+ ██║████╔╝██║████╔╝██║
+ ██║╚██████╔╝╚██████╔╝
+ ╚═╝ ╚═════╝  ╚═════╝</pre>
+        <span class="logo-texto extruido" aria-hidden="true">PROGRAMADORES DIJERON</span>
+    </header>
+    <div class="fila-robot">
+        <div class="robot" data-robot="normal"></div>
+        <p class="prompt"><span class="ruta">root@proxy:~$</span> ./100-programadores-dijeron <span class="cursor">█</span></p>
+    </div>
     <p class="lema">&lt;encuestamos a 100 programadores... y nadie leyó la documentación /&gt;</p>
     <nav class="menu">
         <button class="btn btn-grande" id="btn-continuar" hidden>⏯ Continuar partida</button>
@@ -30,6 +52,10 @@
         <button class="btn btn-grande btn-secundario" id="btn-salir">⏻ Salir</button>
     </nav>
     <p class="nota" id="conteo-preguntas"></p>
+    <label class="hora-inicio">⏰ Hora de inicio de la actividad
+        <input type="time" id="hora-inicio">
+        <small>Opcional: la portada del proyector muestra la cuenta regresiva.</small>
+    </label>
 </section>
 
 <!-- ==================== CONFIGURACIÓN ==================== -->
@@ -46,6 +72,44 @@
                     <input id="nombre-b" maxlength="24" placeholder="Equipo B">
                 </label>
             </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Reglas de la partida</legend>
+            <div class="fila-2">
+                <label>Rondas normales (una pregunta cada una)
+                    <select id="op-rondas"><option value="1">1 ronda</option><option value="2">2 rondas</option><option value="3" selected>3 rondas</option><option value="4">4 rondas</option><option value="5">5 rondas</option><option value="6">6 rondas</option><option value="7">7 rondas</option><option value="8">8 rondas</option></select>
+                </label>
+                <label>Ronda final
+                    <select id="op-final">
+                        <option value="2" selected>Sí, con puntos x2</option>
+                        <option value="3">Sí, con puntos x3</option>
+                        <option value="0">Sin ronda final</option>
+                    </select>
+                </label>
+            </div>
+            <div class="fila-2">
+                <label>Respuestas en el tablero
+                    <select id="op-respuestas"><option value="3">3 respuestas</option><option value="4">4 respuestas</option><option value="5" selected>5 respuestas</option><option value="6">6 respuestas</option><option value="7">7 respuestas</option><option value="8">8 respuestas</option></select>
+                </label>
+                <label>Errores para perder el control
+                    <select id="op-errores"><option value="1">1 error</option><option value="2">2 errores</option><option value="3" selected>3 errores</option><option value="4">4 errores</option><option value="5">5 errores</option></select>
+                </label>
+            </div>
+            <p class="nota resumen-partida" id="resumen-partida"></p>
+        </fieldset>
+
+        <fieldset>
+            <legend>Presentación en el proyector</legend>
+            <label>Animación entre rondas
+                <select id="op-transicion">
+                    <option value="larga">Larga: el robot programa la ronda (~10 s)</option>
+                    <option value="corta">Corta: solo el letrero de la ronda (~4 s)</option>
+                    <option value="no">Sin animación</option>
+                </select>
+            </label>
+            <label class="check"><input type="checkbox" id="op-patrocinadores" checked>
+                Mostrar patrocinadores (portada, entre rondas y al final)</label>
         </fieldset>
 
         <fieldset>
@@ -104,9 +168,7 @@
             <h2 class="pregunta" id="pregunta"></h2>
 
             <div class="fila-estado">
-                <div class="errores" id="errores" aria-label="Errores">
-                    <span class="x">✕</span><span class="x">✕</span><span class="x">✕</span>
-                </div>
+                <div class="errores" id="errores" aria-label="Errores"></div>
                 <div class="reloj" id="reloj-juego"></div>
             </div>
 
@@ -123,11 +185,11 @@
 
         <!-- Solo la ve el moderador: todas las respuestas, incluso las ocultas -->
         <aside class="tarjeta tarjeta-moderador">
-            <h3>🤫 Tarjeta del moderador</h3>
+            <h3>// tarjeta del moderador (secreta)</h3>
             <p class="nota" id="ayuda-tarjeta"></p>
             <ol class="tarjeta-respuestas" id="tarjeta-respuestas"></ol>
             <details class="atajos">
-                <summary>⌨ Atajos de teclado</summary>
+                <summary>$ man atajos</summary>
                 <dl>
                     <dt><kbd>1</kbd>–<kbd>8</kbd></dt><dd>Aceptar la respuesta con ese número</dd>
                     <dt><kbd>X</kbd></dt><dd>Marcar error</dd>
@@ -164,7 +226,7 @@
                 </select>
             </label>
         </div>
-        <p class="nota">Entre 5 y 8 respuestas. Puntos enteros; la suma no debe pasar de 100.
+        <p class="nota">5 respuestas. Puntos enteros; la suma no debe pasar de 100.
             Sinónimos separados por comas (opcional).</p>
         <div class="tabla-respuestas">
             <div class="encabezado"><span>#</span><span>Respuesta</span><span>Puntos</span><span>Sinónimos</span></div>
@@ -196,23 +258,24 @@
     <h2>¿Cómo se juega?</h2>
     <div class="tarjeta instrucciones">
         <ol>
-            <li><strong>Dos equipos</strong> compiten durante <strong>3 rondas normales</strong> y una
-                <strong>ronda final</strong> donde los puntos valen <strong>doble</strong>.</li>
-            <li>Cada ronda muestra una pregunta de encuesta con 5 a 8 respuestas ocultas,
+            <li><strong>Dos equipos</strong> compiten durante varias <strong>rondas normales</strong> y una
+                <strong>ronda final</strong> donde los puntos valen <strong>doble</strong> (por defecto 3 rondas + la final;
+                se cambia en <em>Configurar partida</em>).</li>
+            <li>Cada ronda muestra una pregunta de encuesta con 5 respuestas ocultas (configurable),
                 ordenadas de la más popular a la menos popular.</li>
             <li><strong>Cara a cara:</strong> un representante de cada equipo. El moderador marca quién
                 presionó primero; ese jugador responde. Si atina la respuesta #1, gana el control.
                 Si no, responde el otro y gana quien tenga la respuesta con más puntos.</li>
             <li>El ganador del cara a cara decide si <strong>juega o pasa</strong>.</li>
             <li>El equipo con el control adivina las respuestas restantes. Cada acierto suma al
-                <strong>banco</strong>. Con <strong>3 errores (✕ ✕ ✕)</strong> el otro equipo
+                <strong>banco</strong>. Con <strong>3 errores (✕ ✕ ✕)</strong> (configurable) el otro equipo
                 tiene <strong>una</strong> oportunidad de robar el banco.</li>
             <li>Si se acaba el <strong>tiempo</strong> para responder, cuenta como error.</li>
             <li>Quien gane la ronda se lleva el banco. Al final gana el equipo con más puntos.</li>
         </ol>
         <h3>Para el moderador</h3>
         <ul>
-            <li>Presiona <strong>📽 Abrir proyector</strong>, arrastra esa ventana a la pantalla del proyector y
+            <li>Presiona <strong>▣ Abrir proyector</strong>, arrastra esa ventana a la pantalla del proyector y
                 haz <strong>doble clic</strong> en ella para ponerla en pantalla completa. Esta ventana (el panel)
                 se queda en tu laptop.</li>
             <li>En la <strong>tarjeta del moderador</strong> ves todas las respuestas: haz clic en una (o presiona
@@ -223,6 +286,9 @@
             <li>¿Te equivocaste? <strong>↶ Deshacer</strong> (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) regresa la última acción.</li>
             <li>La partida se guarda sola: si se cierra el navegador, usa <strong>⏯ Continuar partida</strong>.</li>
             <li>Una respuesta que ya está en el tablero no cuenta como error.</li>
+            <li><strong>♫ Música</strong> (arriba a la derecha) pone música chiptune de fondo; baja sola cuando suena un efecto.</li>
+            <li><strong>☀ Tema claro</strong>: úsalo si el auditorio tiene las luces encendidas. Cambia también el proyector.</li>
+            <li><strong>⏰ Hora de inicio</strong> (en el menú): la portada del proyector muestra la cuenta regresiva mientras entra el público.</li>
         </ul>
     </div>
     <button class="btn" data-ir="menu">← Menú</button>
@@ -231,9 +297,17 @@
 <!-- ==================== PANTALLA FINAL ==================== -->
 <section id="pantalla-final" class="pantalla">
     <div class="confeti" id="confeti" aria-hidden="true"></div>
-    <p class="final-sub">🏆 Y el ganador es... 🏆</p>
-    <h1 class="final-ganador" id="final-ganador"></h1>
-    <div class="final-marcador" id="final-marcador"></div>
+    <div class="letrero letrero-final">
+        <img src="img/robot-letrero.webp" alt="">
+        <div class="letrero-texto">
+            <p class="final-sub">★ GANADOR ★</p>
+            <h1 class="final-ganador" id="final-ganador"></h1>
+        </div>
+    </div>
+    <div class="fila-final">
+        <img class="robot-corona" src="img/robot-corona.webp" alt="">
+        <div class="final-marcador" id="final-marcador"></div>
+    </div>
     <div class="fila-botones">
         <button class="btn btn-grande" id="btn-revancha">Revancha</button>
         <button class="btn btn-grande btn-secundario" id="btn-final-menu">Menú principal</button>

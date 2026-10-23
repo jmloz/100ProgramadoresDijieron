@@ -8,7 +8,8 @@
  *   - "categoria": tema de la pregunta (para filtrar al configurar la partida).
  *   - "dificultad": "facil", "media" o "dificil".
  *   - "pregunta": el texto que se muestra en pantalla.
- *   - "respuestas": entre 5 y 8 respuestas.
+ *   - "respuestas": entre 5 y 8 respuestas. En el tablero solo salen
+ *                   las 5 con más puntos (RESPUESTAS_POR_RONDA en modelos.js).
  *       - "texto":  lo que aparece en el tablero al revelarse.
  *       - "puntos": entero positivo. La suma total no debe pasar de 100.
  *       - "alias":  (opcional) sinónimos o variantes aceptadas.

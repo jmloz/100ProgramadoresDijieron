@@ -6,11 +6,10 @@
 const Editor = {
     iniciar() {
         const filas = $("filas-respuestas");
-        for (let i = 1; i <= MAX_RESPUESTAS; i++) {
-            const opcional = i > MIN_RESPUESTAS;
+        for (let i = 1; i <= RESPUESTAS_POR_RONDA; i++) {
             filas.append(el("div", { clase: "fila-respuesta" },
                 el("span", { clase: "num", texto: String(i) }),
-                el("input", { clase: "r-texto", maxlength: "50", placeholder: opcional ? "(opcional)" : "Respuesta" }),
+                el("input", { clase: "r-texto", maxlength: "50", placeholder: "Respuesta" }),
                 el("input", { clase: "r-puntos", type: "number", min: "1", max: "100", step: "1", placeholder: "pts" }),
                 el("input", { clase: "r-alias", maxlength: "200", placeholder: "sinónimo1, sinónimo2" })
             ));

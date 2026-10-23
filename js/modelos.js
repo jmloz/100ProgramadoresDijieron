@@ -8,6 +8,8 @@
 const MIN_RESPUESTAS = 5;
 const MAX_RESPUESTAS = 8;
 const MAX_PUNTOS_PREGUNTA = 100;
+/** En el tablero solo salen las 5 respuestas más populares de cada pregunta. */
+const RESPUESTAS_POR_RONDA = 5;
 const DIFICULTADES = Object.freeze({ facil: "Fácil", media: "Media", dificil: "Difícil" });
 const CATEGORIA_POR_DEFECTO = "General";
 
@@ -41,7 +43,7 @@ class Respuesta {
     }
 }
 
-/** Una pregunta tipo encuesta con 5 a 8 respuestas ordenadas por popularidad. */
+/** Una pregunta tipo encuesta con 5 a 8 respuestas ordenadas por popularidad (en juego se usan las 5 primeras). */
 class Pregunta {
     constructor(texto, respuestas, categoria = CATEGORIA_POR_DEFECTO, dificultad = "media") {
         this.texto = String(texto).trim();
@@ -156,6 +158,6 @@ class Equipo {
 if (typeof module !== "undefined") {
     module.exports = {
         Respuesta, Pregunta, Equipo,
-        MIN_RESPUESTAS, MAX_RESPUESTAS, MAX_PUNTOS_PREGUNTA, DIFICULTADES, CATEGORIA_POR_DEFECTO
+        MIN_RESPUESTAS, MAX_RESPUESTAS, MAX_PUNTOS_PREGUNTA, RESPUESTAS_POR_RONDA, DIFICULTADES, CATEGORIA_POR_DEFECTO
     };
 }
