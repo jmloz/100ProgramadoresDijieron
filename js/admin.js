@@ -456,7 +456,8 @@ const UI = {
             ...this.estadoProyector(),
             tema: Ajustes.tema,
             inicio: Ajustes.inicio,
-            patrocinadores: this.config.patrocinadores !== false
+            patrocinadores: this.config.patrocinadores !== false,
+            audio: SalidaAudio.enProyector ? { activo: Sonidos.activo, musica: SalidaAudio.musica } : null
         };
         CanalPanel.enviar({ tipo: "estado", estado, efecto: this.efecto });
         this.efecto = null;
@@ -789,6 +790,40 @@ function irA(destino) {
     if (destino === "menu") actualizarMenu();
 }
 
+/**
+ * Dónde suenan los efectos y la música. Con el panel en un celular conviene que suenen en el
+ * proyector (la computadora de OBS): el panel solo le manda qué sonido tocar.
+ */
+const SalidaAudio = {
+    enProyector: false,
+    musica: false,      // música encendida (suene aquí o en el proyector)
+
+    /** El panel viene del servidor local: si no se abrió en la misma computadora, el sonido va al proyector. */
+    alDetectarServidor() {
+        $("btn-salida-audio").hidden = false;
+        const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+        $("btn-proyector").hidden = !local;     // desde un celular no hay ventana que abrir
+        this.cambiar(!local);
+    },
+
+    cambiar(enProyector) {
+        if (Musica.activa) Musica.detener();
+        this.enProyector = enProyector;
+        Sonidos.reenviar = enProyector ? (nombre, args) => CanalPanel.enviar({ tipo: "sonido", nombre, args }) : null;
+        if (this.musica && !enProyector) Musica.iniciar();
+        $("btn-salida-audio").textContent = enProyector ? "📺 Suena en proyector" : "🔈 Suena aquí";
+        UI.publicar();
+    },
+
+    alternarMusica() {
+        this.musica = !this.musica;
+        if (this.enProyector) UI.publicar();
+        else if (this.musica) Musica.iniciar();
+        else Musica.detener();
+        return this.musica;
+    }
+};
+
 function actualizarEstadoProyector() {
     const conectado = CanalPanel.conectado;
     const nodo = $("estado-proyector");
@@ -808,13 +843,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Cuando el proyector se abre (o se recarga) pide el estado actual
     CanalPanel.alConectar = () => UI.publicar();
     CanalPanel.alCambiarConexion = actualizarEstadoProyector;
+    CanalPanel.alDetectarServidor = () => SalidaAudio.alDetectarServidor();
     CanalPanel.iniciar();
 
     $("btn-proyector").addEventListener("click", () => {
         if (!CanalPanel.abrir()) {
             Modal.abrir("Ventana bloqueada",
                 "El navegador bloqueó la ventana del proyector. Permite las ventanas emergentes para esta página, " +
-                "o abre proyector.html desde la misma carpeta.",
+                "o abre proyector.html desde la misma carpeta. Si estás dentro de OBS (que no permite ventanas), " +
+                "usa el servidor local: ejecuta iniciar-servidor.bat y agrega http://localhost:8100/proyector.html " +
+                "como Fuente de navegador.",
                 [{ texto: "Aceptar" }]);
         }
     });
@@ -865,9 +903,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     $("btn-sonido").addEventListener("click", ev => {
         ev.currentTarget.textContent = Sonidos.alternar() ? "♪ ON" : "♪ OFF";
+        UI.publicar();
     });
+    $("btn-salida-audio").addEventListener("click", () => SalidaAudio.cambiar(!SalidaAudio.enProyector));
     $("btn-musica").addEventListener("click", ev => {
-        const activa = Musica.alternar();
+        const activa = SalidaAudio.alternarMusica();
         ev.currentTarget.textContent = activa ? "♫ Música ON" : "♫ Música OFF";
         ev.currentTarget.classList.toggle("btn-secundario", !activa);
     });

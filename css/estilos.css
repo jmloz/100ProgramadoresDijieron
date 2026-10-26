@@ -755,6 +755,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
 .barra-titulo .ruta { color: var(--cian); }
 .estado-proyector { font-weight: 700; color: var(--tenue); }
 .estado-proyector.conectado { color: var(--verde); }
+.barra-panel .btn[hidden] { display: none; }
 
 .pantalla-ancha { max-width: 1400px; }
 .admin-juego {
@@ -837,7 +838,7 @@ kbd {
 }
 .ayuda-proyector { top: 2vh; }
 #estado-panel { top: calc(2vh + 90px); }
-.ayuda-proyector[hidden] { display: none; }
+.ayuda-proyector[hidden], .modo-obs .ayuda-proyector { display: none; }
 /* El tablero del proyector se ajusta a la altura de la pantalla (vh) para no cortarse */
 .modo-proyector .pantalla-ancha {
     max-width: 1500px; min-height: 100vh; justify-content: center;
@@ -956,4 +957,10 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
     .fila-respuesta { grid-template-columns: 24px 1fr 70px; }
     .fila-respuesta .r-alias { grid-column: 2 / -1; }
     .fila-2 { grid-template-columns: 1fr; }
+    /* Panel en el celular: la barra no se queda fija, ocuparía media pantalla */
+    .barra-panel { position: static; gap: 8px 10px; padding: 8px 10px; }
+}
+/* Pantallas táctiles (panel en el celular): sin teclado no sirven las pistas de atajos */
+@media (pointer: coarse) {
+    .btn kbd, .atajos { display: none; }
 }

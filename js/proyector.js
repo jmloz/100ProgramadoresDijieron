@@ -30,6 +30,9 @@ const TRANSICION = {
     corta: { ronda: 0, fin: 3800 }
 };
 
+/** Fuente de navegador de OBS (OBS define window.obsstudio) o ?obs en la URL. */
+const EN_OBS = !!window.obsstudio || new URLSearchParams(location.search).has("obs");
+
 const Proyector = {
     idRonda: null,
     animadas: new Set(),        // casillas que ya hicieron su animación de volteo
@@ -51,6 +54,7 @@ const Proyector = {
         this.inicio = estado.inicio || "";
         this.actualizarCuenta();
         this.patrocinadores = estado.patrocinadores !== false;
+        this.aplicarAudio(estado.audio);
         document.body.classList.toggle("sin-patrocinadores", !this.patrocinadores);
         switch (estado.pantalla) {
             case "juego": this.dibujarJuego(estado); break;
@@ -62,6 +66,22 @@ const Proyector = {
             this.reaccionarRobot("error");
         }
         if (efecto && efecto.tipo === "festejo") this.festejar();
+    },
+
+    /** Si el panel manda el sonido al proyector, aquí se prende/apaga la música y el silencio. */
+    aplicarAudio(audio) {
+        if (!audio) {   // el sonido sale por el panel
+            if (Musica.activa) Musica.detener();
+            return;
+        }
+        Sonidos.activo = audio.activo;
+        Musica.ajustarVolumen();
+        if (audio.musica !== Musica.activa) Musica.alternar();
+    },
+
+    /** Efecto de sonido mandado por el panel. */
+    tocarSonido(nombre, args) {
+        if (EFECTOS.includes(nombre)) Sonidos[nombre](...(Array.isArray(args) ? args : []));
     },
 
     mostrar(pantalla) {
@@ -323,9 +343,11 @@ const Proyector = {
 
     /** Avisa en la portada si el panel no está mandando nada. */
     revisarPanel() {
-        $("estado-panel").textContent = this.recibioEstado
-            ? ""
-            : "Esperando al panel del moderador… Abre este proyector con el botón ▣ del panel (index.html).";
+        let aviso = "Esperando al panel del moderador… Abre este proyector con el botón ▣ del panel (index.html).";
+        if (Canal.servidor) aviso = `Esperando al panel del moderador… Ábrelo en ${location.origin}/`;
+        else if (EN_OBS) aviso = "En OBS el proyector necesita el servidor: ejecuta iniciar-servidor.bat y usa la URL " +
+            "http://localhost:8100/proyector.html (sin marcar \"Archivo local\").";
+        $("estado-panel").textContent = this.recibioEstado ? "" : aviso;
     }
 };
 
@@ -337,9 +359,12 @@ document.addEventListener("DOMContentLoaded", () => {
     Proyector.siguienteFrase();
     setInterval(() => Proyector.siguienteFrase(), 6500);
     setInterval(() => Proyector.actualizarCuenta(), 1000);
-    CanalProyector.iniciar((estado, efecto) => Proyector.recibir(estado, efecto));
+    CanalProyector.iniciar((estado, efecto) => Proyector.recibir(estado, efecto),
+        (nombre, args) => Proyector.tocarSonido(nombre, args));
 
-    document.addEventListener("dblclick", () => Proyector.alternarPantallaCompleta());
+    // En OBS no hay ventana que arrastrar ni pantalla completa, y nunca se ve el cursor
+    if (EN_OBS) document.body.classList.add("modo-obs", "sin-cursor");
+    else document.addEventListener("dblclick", () => Proyector.alternarPantallaCompleta());
     document.addEventListener("fullscreenchange", () => {
         $("ayuda-proyector").hidden = !!document.fullscreenElement;
     });
@@ -347,6 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Oculta el cursor cuando no se mueve (se ve más limpio en el proyector)
     let temporizador;
     document.addEventListener("mousemove", () => {
+        if (EN_OBS) return;
         document.body.classList.remove("sin-cursor");
         clearTimeout(temporizador);
         temporizador = setTimeout(() => document.body.classList.add("sin-cursor"), 2500);

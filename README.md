@@ -38,6 +38,55 @@ El proyector nunca recibe el texto de las respuestas ocultas, así que no hay fo
 Los sonidos (estilo chiptune de 8 bits) se generan con Web Audio API y suenan desde el panel (misma computadora, mismas bocinas).
 El botón 🔊 de la barra superior los silencia.
 
+## Usarlo con OBS
+
+OBS no permite abrir ventanas emergentes, y una **Fuente de navegador** de OBS es otro programa: no puede
+recibir mensajes del panel abierto en Chrome. Para eso está el **servidor local** (`servidor-obs.ps1`), que usa
+PowerShell (ya viene con Windows, no hay que instalar nada) y pasa los mensajes entre el panel y el proyector.
+
+1. Doble clic en **`iniciar-servidor.bat`**. Pregunta el **puerto**: presiona **Enter** para usar el 8100 o escribe
+   otro (de 1024 a 65535). Deja abierta esa ventana negra mientras dure el juego.
+2. **Panel del moderador:** abre **http://localhost:8100/** en Chrome o Edge (no `index.html` con doble clic).
+3. **En OBS:** *Fuentes → + → Navegador* con:
+   - **URL:** `http://localhost:8100/proyector.html` (deja **sin marcar** "Archivo local")
+   - **Ancho / Alto:** `1920` × `1080` (o la resolución del lienzo de OBS)
+   - Desmarca *"Apagar la fuente cuando no esté visible"* y *"Actualizar navegador cuando la escena se active"*,
+     para que no se pierda la animación al cambiar de escena.
+4. En el panel debe aparecer **● Proyector conectado**. Si no, en OBS: clic derecho en la fuente → *Actualizar*.
+
+El proyector detecta que está dentro de OBS: oculta el aviso de "arrastra esta ventana" y el cursor.
+
+- **Sonidos:** el botón **🔈 Suena aquí / 📺 Suena en proyector** de la barra del panel elige dónde suenan los
+  efectos y la música. Con el panel en la misma computadora que OBS suenan ahí y entran por *Audio del escritorio*.
+- **Otro puerto:** si el que elegiste está ocupado, la ventana avisa y pregunta otro. Si no usas el 8100, cambia
+  el número en las direcciones del panel y de la fuente de OBS (la ventana negra muestra las correctas).
+  También se puede dar sin que pregunte: `iniciar-servidor.bat 8200`.
+- Las preguntas agregadas y la configuración se guardan por dirección: las de `index.html` abierto con doble
+  clic no aparecen en `http://localhost:8100/`. Pásalas con *Exportar JSON* / *Importar JSON*.
+- **Alternativa sin servidor:** abre el proyector en Chrome con el botón ▣ y en OBS agrega una fuente
+  *Captura de ventana* de esa ventana (método de captura "Windows 10 (1903 y posterior)").
+
+### Panel en el celular (o en otra computadora)
+
+El moderador puede llevar el panel en el celular mientras OBS corre en la computadora del evento.
+
+1. En la computadora de OBS, doble clic en **`iniciar-servidor-red.bat`** (en vez de `iniciar-servidor.bat`).
+   Windows pide permiso de administrador: acéptalo. La primera vez se abre el puerto en el firewall
+   **solo para la red local** (regla `100ProgramadoresDijeron-8100`).
+2. La ventana negra muestra en verde la dirección del panel, por ejemplo **`http://192.168.1.68:8100/`**.
+   Ábrela en el navegador del celular, conectado **a la misma red wifi** que la computadora.
+3. En OBS el proyector se agrega igual que arriba, con `http://localhost:8100/proyector.html`.
+
+Abierto desde el celular, el panel manda los sonidos y la música **al proyector** (botón *📺 Suena en
+proyector*): suenan en la computadora de OBS y no en la bocina del celular. En el celular no hay atajos de
+teclado; todo se hace con los botones y tocando las respuestas de la tarjeta del moderador.
+
+Si el celular no carga la página:
+- Revisa que esté en la misma red (no en datos móviles) y que la computadora no esté en una red "Pública" con
+  aislamiento de clientes (algunas redes de escuelas y congresos lo tienen: en ese caso usa un hotspot propio).
+- Bloquea la pantalla del celular lo menos posible: al bloquearse, el navegador pausa la página. Al volver se
+  reconecta solo.
+
 ## Estructura
 
 ```
@@ -47,7 +96,10 @@ css/estilos.css     Tema visual de ambas ventanas: juego indie pixel art con los
 fonts/              Fuentes locales (Chakra Petch, Press Start 2P, IBM Plex Mono; licencia OFL): no necesita internet
 img/                Logos del Congreso PROXY 2026 (X y wordmark)
 js/dom.js           Utilidades de DOM compartidas y la mascota (robotcito pixel art que reacciona al juego)
-js/canal.js         Comunicación panel <-> proyector (postMessage + BroadcastChannel)
+js/canal.js         Comunicación panel <-> proyector (postMessage + BroadcastChannel + servidor local)
+servidor-obs.ps1    Servidor local para usar el proyector como Fuente de navegador en OBS
+iniciar-servidor.bat  Lo inicia con doble clic (solo esta computadora)
+iniciar-servidor-red.bat  Lo inicia para abrir el panel desde el celular (misma red)
 js/preguntas.js     BANCO DE PREGUNTAS (aquí se agregan preguntas fijas)
 js/validador.js     Normaliza y compara respuestas (acentos, mayúsculas, sinónimos, errores de dedo)
 js/modelos.js       Clases Respuesta, Pregunta y Equipo

@@ -10,6 +10,7 @@ const Sonidos = {
     contexto: null,
     activo: true,
     _ruidoBuffer: null,
+    reenviar: null,     // si es una función, los efectos no suenan aquí: se mandan al proyector
 
     _ctx() {
         try {
@@ -187,6 +188,19 @@ const Sonidos = {
         return this.activo;
     }
 };
+
+/*
+ * Efectos que se pueden tocar en el proyector en vez de aquí (panel en un celular y
+ * sonido en la computadora de OBS). El proyector los toca con estas mismas funciones.
+ */
+const EFECTOS = ["acierto", "error", "revelar", "inicio", "rondaGanada", "ganador", "nuevaRonda", "transicion", "tic", "tiempo"];
+EFECTOS.forEach(nombre => {
+    const tocar = Sonidos[nombre];
+    Sonidos[nombre] = function (...args) {
+        if (this.reenviar) this.reenviar(nombre, args);
+        else tocar.apply(this, args);
+    };
+});
 
 /*
  * ============================================================
