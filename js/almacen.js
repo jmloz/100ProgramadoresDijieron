@@ -37,36 +37,167 @@ const Guardado = {
 
 const AlmacenPreguntas = {
     CLAVE: "cpd_preguntas_personalizadas",
+    CLAVE_CAMBIOS: "cpd_banco_cambios",
 
+    _copia(x) {
+        return JSON.parse(JSON.stringify(x));
+    },
+
+    _idNuevo() {
+        return "p-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    },
+
+    /** Personalizadas guardadas; a las que no tienen id se les asigna uno y se guarda la lista (una sola vez). */
     personalizadas() {
         const datos = Guardado.leer(this.CLAVE, []);
-        return Array.isArray(datos) ? datos : [];
+        const lista = Array.isArray(datos) ? datos : [];
+        let migrada = false;
+        const conId = lista.map(p => {
+            if (p && typeof p === "object" && !p.id) {
+                migrada = true;
+                return { ...p, id: this._idNuevo() };
+            }
+            return p;
+        });
+        if (migrada) this._guardarLista(conId);
+        return conId;
     },
 
     _guardarLista(lista) {
         return Guardado.escribir(this.CLAVE, lista);
     },
 
+    _cambios() {
+        const c = Guardado.leer(this.CLAVE_CAMBIOS, null);
+        const ok = c && typeof c === "object";
+        return {
+            version: 1,
+            editadas: ok && c.editadas && typeof c.editadas === "object" && !Array.isArray(c.editadas) ? c.editadas : {},
+            desactivadas: ok && Array.isArray(c.desactivadas) ? c.desactivadas : [],
+            borradas: ok && Array.isArray(c.borradas) ? c.borradas : []
+        };
+    },
+
+    /** Guarda los cambios descartando ids que ya no existen en la base ni en las personalizadas. */
+    _guardarCambios(cambios) {
+        const validos = new Set([...PREGUNTAS_BASE.map(p => p.id), ...this.personalizadas().map(p => p && p.id)]);
+        const editadas = {};
+        for (const id of Object.keys(cambios.editadas)) if (validos.has(id)) editadas[id] = cambios.editadas[id];
+        return Guardado.escribir(this.CLAVE_CAMBIOS, {
+            version: 1,
+            editadas,
+            desactivadas: [...new Set(cambios.desactivadas)].filter(id => validos.has(id)),
+            borradas: [...new Set(cambios.borradas)].filter(id => validos.has(id))
+        });
+    },
+
+    /** Todas las preguntas con su estado. Base primero (orden de archivo) y luego personalizadas. */
+    catalogo() {
+        const c = this._cambios();
+        const estadoDe = id => c.borradas.includes(id) ? "borrada"
+            : c.desactivadas.includes(id) ? "desactivada" : "activa";
+        const base = PREGUNTAS_BASE.map(b => {
+            const editada = Object.prototype.hasOwnProperty.call(c.editadas, b.id);
+            return {
+                id: b.id,
+                datos: { ...this._copia(editada ? c.editadas[b.id] : b), id: b.id },
+                origen: "base",
+                estado: estadoDe(b.id),
+                editada
+            };
+        });
+        const propias = this.personalizadas().filter(p => p && typeof p === "object").map(p => ({
+            id: p.id,
+            datos: this._copia(p),
+            origen: "personalizada",
+            estado: c.desactivadas.includes(p.id) ? "desactivada" : "activa",
+            editada: false
+        }));
+        return [...base, ...propias];
+    },
+
+    /** Compara con activas y desactivadas, sin contar borradas ni excluirId. */
+    _textoOcupado(texto, excluirId) {
+        const clave = Validador.compactar(texto);
+        return this.catalogo().some(x =>
+            x.estado !== "borrada" && x.id !== excluirId &&
+            typeof x.datos.pregunta === "string" && Validador.compactar(x.datos.pregunta) === clave);
+    },
+
+    porId(id) {
+        return this.todas().find(p => p.id === id) || null;
+    },
+
     /** Agrega una pregunta. Devuelve la lista de errores (vacía si se guardó). */
     agregar(datos) {
         const errores = Pregunta.validarDatos(datos);
         if (errores.length) return errores;
+        if (this._textoOcupado(datos.pregunta, null)) return ["Ya existe una pregunta con ese texto."];
         const lista = this.personalizadas();
-        const clave = Validador.compactar(datos.pregunta);
-        if (this.todas().some(p => Validador.compactar(p.pregunta) === clave)) {
-            return ["Ya existe una pregunta con ese texto."];
-        }
-        lista.push(datos);
+        lista.push({ ...this._copia(datos), id: this._idNuevo() });
         if (!this._guardarLista(lista)) {
             return ["No se pudo guardar: el navegador bloquea el almacenamiento local."];
         }
         return [];
     },
 
-    eliminar(indice) {
-        const lista = this.personalizadas();
-        lista.splice(indice, 1);
-        this._guardarLista(lista);
+    /** Edita una pregunta (base: se guarda como edición; personalizada: se reemplaza conservando el id). */
+    editar(id, datos) {
+        const errores = Pregunta.validarDatos(datos);
+        if (errores.length) return errores;
+        if (this._textoOcupado(datos.pregunta, id)) return ["Ya existe una pregunta con ese texto."];
+        const nuevos = { ...this._copia(datos), id };
+        let ok;
+        if (PREGUNTAS_BASE.some(b => b.id === id)) {
+            const c = this._cambios();
+            c.editadas[id] = nuevos;
+            ok = this._guardarCambios(c);
+        } else {
+            const lista = this.personalizadas();
+            const i = lista.findIndex(p => p && p.id === id);
+            if (i < 0) return ["No existe esa pregunta."];
+            lista[i] = nuevos;
+            ok = this._guardarLista(lista);
+        }
+        return ok ? [] : ["No se pudo guardar: el navegador bloquea el almacenamiento local."];
+    },
+
+    desactivar(id) {
+        const c = this._cambios();
+        if (!c.desactivadas.includes(id)) c.desactivadas.push(id);
+        this._guardarCambios(c);
+    },
+
+    activar(id) {
+        const c = this._cambios();
+        c.desactivadas = c.desactivadas.filter(x => x !== id);
+        this._guardarCambios(c);
+    },
+
+    /** Base: va a «borradas» (reversible con restaurar). Personalizada: se elimina. */
+    borrar(id) {
+        const c = this._cambios();
+        c.desactivadas = c.desactivadas.filter(x => x !== id);
+        if (PREGUNTAS_BASE.some(b => b.id === id)) {
+            if (!c.borradas.includes(id)) c.borradas.push(id);
+        } else {
+            this._guardarLista(this.personalizadas().filter(p => !(p && p.id === id)));
+        }
+        this._guardarCambios(c);
+    },
+
+    /** Solo base: quita la edición y el borrado. Devuelve errores si el texto original ya existe. */
+    restaurar(id) {
+        const original = PREGUNTAS_BASE.find(b => b.id === id);
+        if (!original) return ["Solo se pueden restaurar preguntas del banco base."];
+        if (this._textoOcupado(original.pregunta, id)) {
+            return [`No se puede restaurar: «${original.pregunta}» ya existe.`];
+        }
+        const c = this._cambios();
+        delete c.editadas[id];
+        c.borradas = c.borradas.filter(x => x !== id);
+        this._guardarCambios(c);
+        return [];
     },
 
     /** Importa preguntas desde un arreglo JSON. Devuelve {agregadas, rechazadas}. */
@@ -78,9 +209,9 @@ const AlmacenPreguntas = {
         return { agregadas, rechazadas };
     },
 
-    /** Todas las preguntas válidas (base + personalizadas). Las inválidas se ignoran con aviso. */
+    /** Preguntas activas y válidas. Las inválidas se ignoran con aviso. */
     todas() {
-        return [...PREGUNTAS_BASE, ...this.personalizadas()].filter(p => {
+        return this.catalogo().filter(x => x.estado === "activa").map(x => x.datos).filter(p => {
             const errores = Pregunta.validarDatos(p);
             if (errores.length) console.warn("Pregunta ignorada:", p && p.pregunta, errores);
             return errores.length === 0;

@@ -88,7 +88,7 @@ const Editor = {
             el("button", {
                 clase: "btn btn-mini btn-error", texto: "Eliminar",
                 onclick: () => Modal.abrir("Eliminar pregunta", `¿Eliminar «${p.pregunta}»?`, [
-                    { texto: "Eliminar", clase: "btn-error", accion: () => { AlmacenPreguntas.eliminar(i); this.dibujarLista(); actualizarConteo(); } },
+                    { texto: "Eliminar", clase: "btn-error", accion: () => { AlmacenPreguntas.borrar(p.id); this.dibujarLista(); actualizarConteo(); } },
                     { texto: "Cancelar", clase: "btn-secundario" }
                 ])
             })
