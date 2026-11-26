@@ -69,6 +69,17 @@ test("datos dañados se ignoran", () => {
     assert.deepEqual(json(A.AlmacenPreguntas._cambios().editadas), {});
 });
 
+test("ediciones inválidas de preguntas base se descartan y se cuentan", () => {
+    const A = nuevo();
+    const original = A.AlmacenPreguntas.todas().find(p => p.id === "b01").pregunta;
+    const r = A.Preparacion.importar({
+        tipo: "100pd-preparacion", version: 1,
+        cambios: { editadas: { b01: { pregunta: "x" } } }
+    });
+    assert.equal(r.preguntasIgnoradas, 1);
+    assert.equal(A.AlmacenPreguntas.todas().find(p => p.id === "b01").pregunta, original);
+});
+
 test("ids de importación masiva son únicos", () => {
     const A = nuevo();
     const ids = new Set();

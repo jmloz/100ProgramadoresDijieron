@@ -120,7 +120,16 @@ const Banco = {
     },
 
     cambiar(accion) {
+        // Si la pregunta que se está editando cambia de estado desde la lista, el formulario quedaría obsoleto
+        const ed = this.edicion && this.edicion.modo === "editar" ? this.edicion.id : null;
+        const huella = () => {
+            const x = ed && AlmacenPreguntas.catalogo().find(q => q.id === ed);
+            return x ? `${x.estado}|${x.editada}` : "";
+        };
+        const antes = huella();
         accion();
+        if (ed && huella() !== antes) this.cerrarFormulario();
+        $("ok-banco").textContent = "";
         this.llenarCategorias();
         this.dibujarLista();
         actualizarConteo();
@@ -245,5 +254,6 @@ const Banco = {
         }
         this.cerrarFormulario();
         this.cambiar(() => {});
+        $("ok-banco").textContent = "✔ Pregunta guardada.";
     }
 };

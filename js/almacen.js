@@ -374,7 +374,22 @@ const Preparacion = {
         A._guardarLista(validas);
 
         // Los cambios pasan por la misma limpieza de ids que el resto del almacén.
-        Guardado.escribir(A.CLAVE_CAMBIOS, obj.cambios && typeof obj.cambios === "object" ? obj.cambios : {});
+        // Las ediciones de preguntas base que no pasan la validación se descartan y se cuentan como ignoradas.
+        const cambios = obj.cambios && typeof obj.cambios === "object" ? { ...obj.cambios } : {};
+        let editadasIgnoradas = 0;
+        if (cambios.editadas && typeof cambios.editadas === "object" && !Array.isArray(cambios.editadas)) {
+            const editadas = {};
+            for (const [id, datos] of Object.entries(cambios.editadas)) {
+                const esBase = PREGUNTAS_BASE.some(b => b.id === id);
+                if (esBase && (!datos || typeof datos !== "object" || Pregunta.validarDatos(datos).length)) {
+                    editadasIgnoradas++;
+                    continue;
+                }
+                editadas[id] = datos;
+            }
+            cambios.editadas = editadas;
+        }
+        Guardado.escribir(A.CLAVE_CAMBIOS, cambios);
         A._guardarCambios(A._cambios());
 
         const nombres = AlmacenConfig.cargar().nombres;
@@ -388,7 +403,7 @@ const Preparacion = {
         AlmacenConfig.guardar(config);
 
         AlmacenPantalla.guardar(obj.pantalla);
-        return { preguntasIgnoradas: entrantes.length - validas.length };
+        return { preguntasIgnoradas: entrantes.length - validas.length + editadasIgnoradas };
     }
 };
 

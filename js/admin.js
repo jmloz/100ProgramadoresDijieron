@@ -1149,7 +1149,17 @@ document.addEventListener("DOMContentLoaded", () => {
         UI.dibujar();
     });
 
-    $("btn-revancha").addEventListener("click", () => UI.iniciarPartida());
+    $("btn-revancha").addEventListener("click", () => {
+        if (UI.config && UI.config.modoPreguntas === "lista") {
+            Modal.abrir("Revancha", "Se repetirán las mismas preguntas de la lista fija.", [
+                { texto: "Jugar de nuevo", accion: () => UI.iniciarPartida() },
+                { texto: "Cambiar preguntas", clase: "btn-secundario", accion: () => irA("config") },
+                { texto: "Cancelar", clase: "btn-secundario" }
+            ]);
+            return;
+        }
+        UI.iniciarPartida();
+    });
     $("btn-final-menu").addEventListener("click", () => {
         AlmacenPartida.borrar();
         irA("menu");

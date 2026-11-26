@@ -454,6 +454,9 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqw;
     margin: 0; text-align: center;
 }
+/* Sin el robot: el título deja de flotar sobre la imagen y ocupa su propio lugar, como un letrero solo */
+.letrero-portada.sin-robot { background: #0b1030; box-shadow: var(--marco), 0 8px 0 0 var(--sombra); padding: 3cqw 0; }
+.letrero-portada.sin-robot .letrero-texto { position: static; height: auto; }
 .letrero .logo-ascii { font-size: 3cqw; }
 .letrero .logo-texto { font-size: 5.6cqw; margin: 0; line-height: 1.35; }
 
@@ -556,6 +559,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     padding: 10px 16px; margin: 0;
     box-shadow: var(--marco), 0 6px 0 0 var(--sombra);
 }
+.portada-centro:has(.sin-robot) .globo { left: 103%; top: 50%; transform: translateY(-50%); }
 .globo::before {   /* piquito del globo, apuntando al robot */
     content: ""; position: absolute; left: -16px; top: 16px;
     border: 8px solid transparent; border-right: 10px solid var(--crema);
@@ -702,6 +706,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
 .sin-patrocinadores .tira-patrocinadores,
 .sin-patrocinadores .transicion-patrocinadores,
 .sin-patrocinadores .creditos .logos-patrocinadores { display: none; }
+.sin-patrocinadores .creditos.sin-texto { display: none; }
 .sin-patrocinadores #pantalla-espera { padding-bottom: 2vh; }
 
 /* Lluvia de festejo encima del tablero */

@@ -210,7 +210,7 @@ Acciones por pregunta:
 - **Borrar:** pide confirmación. Borrar una pregunta **base** es reversible (**Restaurar original**);
   borrar una **tuya** es definitivo.
 - **Restaurar original:** deshace las ediciones de una base o la vuelve a poner si estaba borrada. Si su
-  texto ya lo usa otra pregunta, no se restaura y el aviso dice cuál.
+  texto ya lo usa otra pregunta, no se restaura y el aviso lo indica.
 
 Reglas del formulario: de **5 a 8 respuestas**, puntos enteros positivos y suma máxima de **100** (la suma
 se va calculando mientras escribes). En el tablero solo salen las N respuestas con más puntos, donde N es
@@ -288,8 +288,8 @@ guardan por ese id.
     },
 ```
 
-Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. En el tablero solo salen las **5 más
-populares** (`RESPUESTAS_POR_RONDA` en `js/modelos.js`); las demás no cuentan. `categoria` es libre (si la omites
+Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. En el tablero salen las más
+populares: **5 por defecto**, configurable de 3 a 8 en la pantalla de configuración (`RESPUESTAS_POR_RONDA` en `js/modelos.js` es el valor por defecto); las demás no cuentan. `categoria` es libre (si la omites
 queda en "General") y `dificultad` puede ser `"facil"`, `"media"` o `"dificil"` (por defecto `"media"`). El orden no importa
 (el juego las ordena por puntaje). Si una pregunta tiene errores, el juego la ignora y lo avisa en la
 consola del navegador (F12).

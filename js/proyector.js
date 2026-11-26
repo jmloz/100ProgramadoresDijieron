@@ -71,6 +71,7 @@ const Proyector = {
         texto(en(".marca-edicion", portada), p.marca.edicion);
         ocultar(en("pre.boot", portada), p.boot.mostrar);
         ocultar(en(".letrero-portada img", portada), p.letrero.mostrar);
+        en(".letrero-portada", portada).classList.toggle("sin-robot", !p.letrero.mostrar);
         ocultar(en(".lema-proxy", portada), p.lema.mostrar);
         texto(en(".lema-proxy", portada), p.lema.texto);
         ocultar(en("p.prompt", portada), p.prompt.mostrar);
@@ -79,6 +80,7 @@ const Proyector = {
         texto(en(".marcador-marca span"), p.marcador.texto);
         ocultar(en(".laptop img"), p.laptop.mostrar);
         ocultar(en(".creditos p"), p.creditos.mostrar);
+        en(".creditos").classList.toggle("sin-texto", !p.creditos.mostrar);
         texto(en(".creditos p"), p.creditos.texto);
 
         this.mostrarCuenta = p.cuenta.mostrar;
