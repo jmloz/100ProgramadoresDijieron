@@ -693,7 +693,7 @@ const Configuracion = {
         $("op-transicion").value = ["larga", "corta", "no"].includes(c.transicion) ? c.transicion : "larga";
 
         this.lista = [...(c.listaFija || [])];
-        this.filasDibujadas = -1;
+        this.filasDibujadas = "";
         document.querySelector(`input[name="modo-preguntas"][value="${c.modoPreguntas === "lista" ? "lista" : "azar"}"]`).checked = true;
         $("lista-categorias").replaceChildren(...AlmacenPreguntas.categorias().map(cat =>
             el("label", { clase: "check" },
@@ -731,14 +731,14 @@ const Configuracion = {
         if (this.lista.length !== necesarias) {
             this.lista = Array.from({ length: necesarias }, (_, i) => this.lista[i] || "");
         }
-        if (this.filasDibujadas === necesarias) return;
+        if (this.filasDibujadas === `${necesarias}:${o.rondaFinal}`) return;
         this.redibujarLista(o);
     },
 
     redibujarLista(o) {
         const necesarias = preguntasNecesarias(o);
         const activas = AlmacenPreguntas.todas();
-        this.filasDibujadas = necesarias;
+        this.filasDibujadas = `${necesarias}:${o.rondaFinal}`;
         $("lista-fija").replaceChildren(...this.lista.map((id, i) => {
             const etiqueta = o.rondaFinal && i === necesarias - 1 ? "Ronda final" : `Ronda ${i + 1}`;
             const opciones = [el("option", { value: "", texto: "— elegir —" }),
