@@ -6,21 +6,6 @@
  * ============================================================
  */
 
-/** Lo que dice el robot en la portada mientras entra el público (rotan cada pocos segundos). */
-const FRASES_ROBOT = [
-    "¡Hola! Soy el robot de PROXY.",
-    "¿Listos para jugar?",
-    "Encuestamos a 100 programadores…",
-    "…y nadie leyó la documentación.",
-    "En mi máquina sí funciona.",
-    "Hay 10 tipos de personas: las que saben binario y las que no.",
-    "git commit -m \"ya quedó\"",
-    "¿Ya intentaron apagarlo y prenderlo?",
-    "No es un bug: es una característica sorpresa.",
-    "¡Prepárense, equipos!",
-    "Crea, conecta y conquista."
-];
-
 /**
  * Línea de tiempo de la animación entre rondas, en milisegundos.
  * Sonidos.transicion() (panel) suena al mismo ritmo: si cambias estos tiempos, ajústalos allá también.
@@ -299,7 +284,8 @@ const Proyector = {
     /** El robot de la portada "teclea" una frase nueva cada pocos segundos. */
     siguienteFrase() {
         const globo = $("globo-robot");
-        const frase = FRASES_ROBOT[this.indiceFrase % FRASES_ROBOT.length];
+        const frases = PANTALLA_POR_DEFECTO.globo.frases;
+        const frase = frases[this.indiceFrase % frases.length];
         this.indiceFrase++;
         const texto = el("span", { clase: "globo-texto", texto: frase });
         texto.style.setProperty("--n", frase.length);

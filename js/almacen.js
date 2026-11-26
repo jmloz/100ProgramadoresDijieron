@@ -273,6 +273,23 @@ const AlmacenPreguntas = {
     }
 };
 
+/** Configuración de la pantalla del público (requiere pantalla.js cargado antes). */
+const AlmacenPantalla = {
+    CLAVE: "cpd_pantalla",
+
+    cargar() {
+        return normalizarPantalla(Guardado.leer(this.CLAVE, null));
+    },
+
+    guardar(pantalla) {
+        return Guardado.escribir(this.CLAVE, normalizarPantalla(pantalla));
+    },
+
+    restablecer() {
+        Guardado.borrar(this.CLAVE);
+    }
+};
+
 const AlmacenConfig = {
     CLAVE: "cpd_config",
     POR_DEFECTO: Object.freeze({
