@@ -62,3 +62,15 @@ test("AlmacenPantalla: cargar sin clave da el default; guardar y restablecer", (
     assert.equal(almacen.cpd_pantalla, undefined);
     assert.equal(json(A.cargar()), json(D));
 });
+
+test("publicar() manda la configuración como pantallaPublico y no pisa el selector 'pantalla'", () => {
+    const fs = require("node:fs"), path = require("node:path");
+    const raiz = path.join(__dirname, "..");
+    const admin = fs.readFileSync(path.join(raiz, "js/admin.js"), "utf8");
+    const proy = fs.readFileSync(path.join(raiz, "js/proyector.js"), "utf8");
+    const bloque = admin.slice(admin.indexOf("    publicar() {"), admin.indexOf("CanalPanel.enviar"));
+    assert.match(bloque, /pantallaPublico:\s*PantallaPublico\.actual\(\)/);
+    assert.doesNotMatch(bloque, /^\s*pantalla:/m);
+    assert.match(proy, /normalizarPantalla\(estado\.pantallaPublico\)/);
+    assert.match(proy, /switch \(estado\.pantalla\)/);
+});

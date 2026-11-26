@@ -457,7 +457,7 @@ const UI = {
             tema: Ajustes.tema,
             inicio: Ajustes.inicio,
             patrocinadores: this.config.patrocinadores !== false,
-            pantalla: PantallaPublico.actual(),
+            pantallaPublico: PantallaPublico.actual(),   // 'pantalla' ya es el selector espera/juego/final
             audio: SalidaAudio.enProyector ? { activo: Sonidos.activo, musica: SalidaAudio.musica } : null
         };
         CanalPanel.enviar({ tipo: "estado", estado, efecto: this.efecto });
@@ -790,8 +790,9 @@ const PantallaPublico = {
     iniciar() {
         const cont = $("publico-bloques");
         cont.replaceChildren(...this.bloques.map(b => this.dibujarBloque(b)), this.dibujarPatrocinadores());
-        cont.addEventListener("input", () => this.alCambiar());
-        cont.addEventListener("change", () => this.alCambiar());
+        // una sola vez por control: texto con "input", casillas con "change"
+        cont.addEventListener("input", ev => { if (ev.target.type !== "checkbox") this.alCambiar(); });
+        cont.addEventListener("change", ev => { if (ev.target.type === "checkbox") this.alCambiar(); });
         $("btn-publico-restablecer").addEventListener("click", () =>
             Modal.abrir("Restablecer valores originales",
                 "Se borrarán tus textos y se volverán a mostrar todos los elementos, incluidos los patrocinadores.", [

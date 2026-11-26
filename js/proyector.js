@@ -40,7 +40,7 @@ const Proyector = {
         this.revisarPanel();
         document.documentElement.dataset.tema = estado.tema === "claro" ? "claro" : "oscuro";
         this.inicio = estado.inicio || "";
-        this.aplicarPantalla(normalizarPantalla(estado.pantalla));
+        this.aplicarPantalla(normalizarPantalla(estado.pantallaPublico));
         this.actualizarCuenta();
         this.patrocinadores = estado.patrocinadores !== false;
         this.aplicarAudio(estado.audio);
