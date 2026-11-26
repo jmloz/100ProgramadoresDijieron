@@ -5,6 +5,7 @@
  *  Para agregar una pregunta, copia un bloque { ... } y edítalo.
  *
  *  Reglas:
+ *   - "id": identificador único y fijo (b28, b29…). No lo cambies ni lo reuses: el juego guarda las ediciones por id.
  *   - "categoria": tema de la pregunta (para filtrar al configurar la partida).
  *   - "dificultad": "facil", "media" o "dificil".
  *   - "pregunta": el texto que se muestra en pantalla.
@@ -23,6 +24,7 @@
  */
 const PREGUNTAS_BASE = [
     {
+        id: "b01",
         categoria: "Vida estudiantil",
         dificultad: "facil",
         pregunta: "Algo que un estudiante de sistemas escucha de su familia",
@@ -37,6 +39,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b02",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Una IA que un programador usa",
@@ -51,6 +54,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b03",
         categoria: "Vida estudiantil",
         dificultad: "facil",
         pregunta: "Algo que haces en clase en vez de poner atención",
@@ -65,6 +69,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b04",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Algo que nunca falta en el escritorio de un programador",
@@ -79,6 +84,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b05",
         categoria: "Congreso",
         dificultad: "facil",
         pregunta: "Algo que hay en un congreso de tecnología",
@@ -92,6 +98,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b06",
         categoria: "Vida estudiantil",
         dificultad: "facil",
         pregunta: "Una manera de pasar un examen",
@@ -106,6 +113,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b07",
         categoria: "Vida estudiantil",
         dificultad: "media",
         pregunta: "Un trabajo que tus papás creen que haces por estudiar sistemas",
@@ -119,6 +127,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b08",
         categoria: "Técnicas",
         dificultad: "media",
         pregunta: "Menciona un gestor de bases de datos",
@@ -133,6 +142,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b09",
         categoria: "Técnicas",
         dificultad: "facil",
         pregunta: "Menciona una parte de la computadora",
@@ -147,6 +157,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b10",
         categoria: "Técnicas",
         dificultad: "facil",
         pregunta: "Menciona un lenguaje de programación",
@@ -162,6 +173,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b11",
         categoria: "Técnicas",
         dificultad: "facil",
         pregunta: "Un editor o IDE para programar",
@@ -177,6 +189,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b12",
         categoria: "Técnicas",
         dificultad: "media",
         pregunta: "Un framework o librería para hacer páginas web",
@@ -192,6 +205,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b13",
         categoria: "Técnicas",
         dificultad: "media",
         pregunta: "Un comando de Git",
@@ -207,6 +221,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b14",
         categoria: "Técnicas",
         dificultad: "media",
         pregunta: "Un error que todo programador ha visto",
@@ -222,6 +237,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b15",
         categoria: "Técnicas",
         dificultad: "dificil",
         pregunta: "Un lugar o servicio para subir (desplegar) tu proyecto",
@@ -237,6 +253,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b16",
         categoria: "Técnicas",
         dificultad: "dificil",
         pregunta: "Una distribución de Linux",
@@ -252,6 +269,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b17",
         categoria: "Cultura dev",
         dificultad: "media",
         pregunta: "Una excusa cuando tu código no funciona",
@@ -266,6 +284,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b18",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Una página que un programador visita a diario",
@@ -281,6 +300,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b19",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Algo que un programador le pregunta a Google o a la IA",
@@ -295,6 +315,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b20",
         categoria: "Cultura dev",
         dificultad: "media",
         pregunta: "Algo que te da miedo hacer en producción (sobre todo en viernes)",
@@ -309,6 +330,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b21",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Algo que haces cuando no encuentras el bug",
@@ -323,6 +345,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b22",
         categoria: "Cultura dev",
         dificultad: "facil",
         pregunta: "Una marca de laptop que usa un programador",
@@ -337,6 +360,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b23",
         categoria: "Cultura dev",
         dificultad: "media",
         pregunta: "Algo que te piden en una vacante para programador junior",
@@ -351,6 +375,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b24",
         categoria: "Cultura dev",
         dificultad: "media",
         pregunta: "Una empresa de tecnología donde te gustaría trabajar",
@@ -366,6 +391,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b25",
         categoria: "Vida estudiantil",
         dificultad: "facil",
         pregunta: "Algo que haces la noche antes de entregar el proyecto",
@@ -380,6 +406,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b26",
         categoria: "Vida estudiantil",
         dificultad: "media",
         pregunta: "Una materia que muchos reprueban en sistemas",
@@ -394,6 +421,7 @@ const PREGUNTAS_BASE = [
         ]
     },
     {
+        id: "b27",
         categoria: "Congreso",
         dificultad: "facil",
         pregunta: "Algo que te llevas de un congreso",
