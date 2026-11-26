@@ -226,8 +226,8 @@ En **▶ Jugar**, la sección *Preguntas* elige cómo se llenan las rondas:
 - **Al azar** (por defecto): el juego saca preguntas de las categorías y la dificultad que elijas, sin repetir.
   Avisa si con ese filtro no alcanzan las preguntas que necesita la partida.
 - **Lista fija:** tú eliges la pregunta de cada ronda, en orden. Hay una casilla por ronda normal y una
-  para la ronda final. Cada casilla tiene un buscador del banco activo, y puedes subir, bajar o quitar
-  preguntas. Los filtros de categoría y dificultad se ocultan en este modo.
+  para la ronda final. Cada casilla es una lista desplegable con las preguntas activas; con ↑ y ↓ cambias
+  el orden, y «— elegir —» deja la casilla vacía. Los filtros de categoría y dificultad se ocultan en este modo.
   Antes de iniciar, el juego revisa que no haya casillas vacías, preguntas repetidas ni preguntas que ya
   estén desactivadas o borradas, y te dice cuál es el problema. Si cambias el número de rondas, la lista se
   recorta o agrega casillas vacías.
