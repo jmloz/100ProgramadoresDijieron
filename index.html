@@ -50,6 +50,7 @@
         <p class="nota info-continuar" id="info-continuar" hidden></p>
         <button class="btn btn-grande" data-ir="config">▶ Jugar</button>
         <button class="btn btn-grande" data-ir="banco">☰ Banco de preguntas</button>
+        <button class="btn btn-grande" data-ir="publico">🖥 Pantalla del público</button>
         <button class="btn btn-grande" data-ir="instrucciones">? Ver instrucciones</button>
         <button class="btn btn-grande btn-secundario" id="btn-salir">⏻ Salir</button>
     </nav>
@@ -110,8 +111,6 @@
                     <option value="no">Sin animación</option>
                 </select>
             </label>
-            <label class="check"><input type="checkbox" id="op-patrocinadores" checked>
-                Mostrar patrocinadores (portada, entre rondas y al final)</label>
         </fieldset>
 
         <fieldset>
@@ -272,6 +271,17 @@
         <div class="fila-botones">
             <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
         </div>
+    </div>
+</section>
+
+<!-- ==================== PANTALLA DEL PÚBLICO ==================== -->
+<section id="pantalla-publico" class="pantalla">
+    <h2>Pantalla del público</h2>
+    <p class="nota">Elige qué se ve en el proyector y edita sus textos. Los cambios se guardan y se aplican al momento.</p>
+    <div id="publico-bloques" class="publico-bloques"></div>
+    <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+        <button type="button" class="btn btn-error" id="btn-publico-restablecer">Restablecer valores originales</button>
     </div>
 </section>
 

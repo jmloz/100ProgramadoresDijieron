@@ -30,6 +30,9 @@ const Proyector = {
     patrocinadores: true,
     inicio: "",                 // hora de inicio de la actividad ("HH:MM") para la cuenta regresiva
     indiceFrase: 0,
+    frases: [...PANTALLA_POR_DEFECTO.globo.frases],
+    mostrarCuenta: true,
+    mostrarGlobo: true,
 
     /** Punto de entrada: llega un estado nuevo desde el panel. */
     recibir(estado, efecto) {
@@ -37,6 +40,7 @@ const Proyector = {
         this.revisarPanel();
         document.documentElement.dataset.tema = estado.tema === "claro" ? "claro" : "oscuro";
         this.inicio = estado.inicio || "";
+        this.aplicarPantalla(normalizarPantalla(estado.pantalla));
         this.actualizarCuenta();
         this.patrocinadores = estado.patrocinadores !== false;
         this.aplicarAudio(estado.audio);
@@ -51,6 +55,44 @@ const Proyector = {
             this.reaccionarRobot("error");
         }
         if (efecto && efecto.tipo === "festejo") this.festejar();
+    },
+
+    /** Muestra/oculta los elementos y pone los textos que el moderador configuró en "Pantalla del público". */
+    aplicarPantalla(p) {
+        const ocultar = (nodo, visible) => { if (nodo) nodo.hidden = !visible; };
+        const texto = (nodo, valor) => { if (nodo && nodo.textContent !== valor) nodo.textContent = valor; };
+        const portada = $("pantalla-espera");
+        const en = (selector, raiz = document) => raiz.querySelector(selector);
+
+        const marca = en(".marca", portada);
+        ocultar(marca, p.marca.mostrar);
+        texto(en(".marca-congreso", portada), p.marca.congreso);
+        texto(en(".marca-proxy", portada), p.marca.proxy);
+        texto(en(".marca-edicion", portada), p.marca.edicion);
+        ocultar(en("pre.boot", portada), p.boot.mostrar);
+        ocultar(en(".letrero-portada img", portada), p.letrero.mostrar);
+        ocultar(en(".lema-proxy", portada), p.lema.mostrar);
+        texto(en(".lema-proxy", portada), p.lema.texto);
+        ocultar(en("p.prompt", portada), p.prompt.mostrar);
+        texto($("prompt-texto"), p.prompt.texto);
+        ocultar(en(".marcador-marca"), p.marcador.mostrar);
+        texto(en(".marcador-marca span"), p.marcador.texto);
+        ocultar(en(".laptop img"), p.laptop.mostrar);
+        ocultar(en(".creditos p"), p.creditos.mostrar);
+        texto(en(".creditos p"), p.creditos.texto);
+
+        this.mostrarCuenta = p.cuenta.mostrar;
+        this.actualizarCuenta();
+
+        const frases = p.globo.frases;
+        const cambiaron = frases.length !== this.frases.length || frases.some((f, i) => f !== this.frases[i]);
+        this.frases = frases;
+        this.mostrarGlobo = p.globo.mostrar && frases.length > 0;
+        $("globo-robot").hidden = !this.mostrarGlobo;
+        if (cambiaron) {
+            this.indiceFrase = 0;
+            this.siguienteFrase();
+        }
     },
 
     /** Si el panel manda el sonido al proyector, aquí se prende/apaga la música y el silencio. */
@@ -266,7 +308,7 @@ const Proyector = {
     actualizarCuenta() {
         const nodo = $("cuenta-inicio");
         const partes = /^(\d{1,2}):(\d{2})$/.exec(this.inicio);
-        if (!partes) { nodo.hidden = true; return; }
+        if (!this.mostrarCuenta || !partes) { nodo.hidden = true; return; }
         const meta = new Date();
         meta.setHours(Number(partes[1]), Number(partes[2]), 0, 0);
         const faltan = Math.round((meta - Date.now()) / 1000);
@@ -284,7 +326,8 @@ const Proyector = {
     /** El robot de la portada "teclea" una frase nueva cada pocos segundos. */
     siguienteFrase() {
         const globo = $("globo-robot");
-        const frases = PANTALLA_POR_DEFECTO.globo.frases;
+        const frases = this.frases;
+        if (!frases.length) { globo.replaceChildren(); return; }
         const frase = frases[this.indiceFrase % frases.length];
         this.indiceFrase++;
         const texto = el("span", { clase: "globo-texto", texto: frase });

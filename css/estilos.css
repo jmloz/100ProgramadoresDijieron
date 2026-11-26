@@ -517,6 +517,14 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     padding: 4px 8px; margin: 4px;
     box-shadow: var(--marco);
 }
+.modo-proyector [hidden] { display: none !important; }   /* "Pantalla del público": los elementos ocultos no deben recuperarse por reglas de display */
+.lema-proxy, .globo, .creditos p {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.lema-proxy, .creditos p {
+    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .lema-proxy { font-family: var(--fuente-juego); font-weight: 700; color: #7fd0e2; margin: 0; font-size: 1.2rem; }
 .marcador-marca {
     display: flex; align-items: center; gap: 8px;
@@ -976,3 +984,7 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
 @media (pointer: coarse) {
     .btn kbd, .atajos { display: none; }
 }
+
+/* ---------- Panel: pantalla del público ---------- */
+.publico-bloques { display: grid; gap: 12px; width: min(760px, 100%); }
+.bloque-publico textarea { min-height: 7em; }

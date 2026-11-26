@@ -457,6 +457,7 @@ const UI = {
             tema: Ajustes.tema,
             inicio: Ajustes.inicio,
             patrocinadores: this.config.patrocinadores !== false,
+            pantalla: PantallaPublico.actual(),
             audio: SalidaAudio.enProyector ? { activo: Sonidos.activo, musica: SalidaAudio.musica } : null
         };
         CanalPanel.enviar({ tipo: "estado", estado, efecto: this.efecto });
@@ -677,7 +678,6 @@ const Configuracion = {
         $("op-respuestas").value = o.respuestas;
         $("op-errores").value = o.maxErrores;
         $("op-transicion").value = ["larga", "corta", "no"].includes(c.transicion) ? c.transicion : "larga";
-        $("op-patrocinadores").checked = c.patrocinadores !== false;
 
         $("lista-categorias").replaceChildren(...AlmacenPreguntas.categorias().map(cat =>
             el("label", { clase: "check" },
@@ -748,11 +748,128 @@ const Configuracion = {
 
         UI.config = {
             ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, categorias, dificultad, ...opciones,
-            transicion: $("op-transicion").value,
-            patrocinadores: $("op-patrocinadores").checked
+            transicion: $("op-transicion").value
         };
         AlmacenConfig.guardar(UI.config);
         UI.iniciarPartida();
+    }
+};
+
+/* ============================================================
+ *  PANTALLA DEL PÚBLICO: qué elementos se ven en el proyector y con qué
+ *  textos. Se guarda en AlmacenPantalla y se manda en cada estado.
+ *  Los patrocinadores viven en UI.config.patrocinadores.
+ * ============================================================ */
+
+const PantallaPublico = {
+    datos: null,            // copia en memoria (normalizada) de la configuración
+    /** Un bloque por elemento: título, sección de PANTALLA_POR_DEFECTO y campos de texto. */
+    bloques: [
+        { seccion: "marca", titulo: "Banner", campos: [
+            { nombre: "congreso", etiqueta: "Texto superior", limite: "marca" },
+            { nombre: "proxy", etiqueta: "Texto principal", limite: "marca" },
+            { nombre: "edicion", etiqueta: "Edición", limite: "marca" }] },
+        { seccion: "boot", titulo: "Texto de arranque", campos: [] },
+        { seccion: "letrero", titulo: "Robot con letrero", campos: [] },
+        { seccion: "globo", titulo: "Globo del robot", campos: [
+            { nombre: "frases", etiqueta: "Frases (una por línea; vacío = sin globo)", limite: "frase", lineas: true }] },
+        { seccion: "lema", titulo: "Lema", campos: [{ nombre: "texto", etiqueta: "Texto", limite: "lema" }] },
+        { seccion: "cuenta", titulo: "Cuenta regresiva", campos: [] },
+        { seccion: "prompt", titulo: "Prompt de espera", campos: [{ nombre: "texto", etiqueta: "Texto", limite: "prompt" }] },
+        { seccion: "marcador", titulo: "Marca del marcador", campos: [{ nombre: "texto", etiqueta: "Texto", limite: "marcador" }] },
+        { seccion: "laptop", titulo: "Logo en la laptop", campos: [] },
+        { seccion: "creditos", titulo: "Créditos", campos: [{ nombre: "texto", etiqueta: "Texto", limite: "creditos", largo: true }] }
+    ],
+
+    /** Configuración vigente (la que se publica). */
+    actual() {
+        if (!this.datos) this.datos = AlmacenPantalla.cargar();
+        return this.datos;
+    },
+
+    iniciar() {
+        const cont = $("publico-bloques");
+        cont.replaceChildren(...this.bloques.map(b => this.dibujarBloque(b)), this.dibujarPatrocinadores());
+        cont.addEventListener("input", () => this.alCambiar());
+        cont.addEventListener("change", () => this.alCambiar());
+        $("btn-publico-restablecer").addEventListener("click", () =>
+            Modal.abrir("Restablecer valores originales",
+                "Se borrarán tus textos y se volverán a mostrar todos los elementos, incluidos los patrocinadores.", [
+                    { texto: "Sí, restablecer", clase: "btn-error", accion: () => this.restablecer() },
+                    { texto: "Cancelar", clase: "btn-secundario" }
+                ]));
+    },
+
+    abrir() {
+        this.llenar(this.actual());
+        $("check-patrocinadores").checked = UI.config.patrocinadores !== false;
+        mostrarPantalla("publico");
+        UI.temporizador.detener();
+        UI.publicar();
+    },
+
+    dibujarBloque(b) {
+        const campos = b.campos.map(c => {
+            const limite = LIMITES_PANTALLA[c.limite];
+            const attrs = { "data-seccion": b.seccion, "data-campo": c.nombre };
+            const entrada = c.lineas || c.largo
+                // en las frases el límite es por línea, no del conjunto: normalizarPantalla lo aplica
+                ? el("textarea", c.lineas ? { ...attrs, rows: 6 } : { ...attrs, rows: 3, maxlength: limite })
+                : el("input", { ...attrs, type: "text", maxlength: limite });
+            return el("label", {}, c.etiqueta + (c.lineas ? ` · máx. ${LIMITES_PANTALLA.frases} frases de ${limite} letras`
+                : ` · máx. ${limite} letras`), entrada);
+        });
+        return el("fieldset", { clase: "bloque-publico" },
+            el("legend", { texto: b.titulo }),
+            el("label", { clase: "check" },
+                el("input", { type: "checkbox", "data-seccion": b.seccion, "data-campo": "mostrar" }), "Mostrar"),
+            ...campos);
+    },
+
+    dibujarPatrocinadores() {
+        return el("fieldset", { clase: "bloque-publico" },
+            el("legend", { texto: "Patrocinadores" }),
+            el("label", { clase: "check" },
+                el("input", { type: "checkbox", id: "check-patrocinadores" }),
+                "Mostrar (portada, entre rondas y al final)"));
+    },
+
+    /** Pone los valores en el formulario. */
+    llenar(p) {
+        document.querySelectorAll("#publico-bloques [data-seccion]").forEach(campo => {
+            const valor = p[campo.dataset.seccion][campo.dataset.campo];
+            if (campo.type === "checkbox") campo.checked = valor;
+            else campo.value = Array.isArray(valor) ? valor.join("\n") : valor;
+        });
+    },
+
+    /** Lee el formulario, guarda y manda el cambio al proyector. */
+    alCambiar() {
+        const crudo = {};
+        document.querySelectorAll("#publico-bloques [data-seccion]").forEach(campo => {
+            const sec = campo.dataset.seccion;
+            crudo[sec] = crudo[sec] || {};
+            crudo[sec][campo.dataset.campo] = campo.type === "checkbox" ? campo.checked
+                : campo.dataset.campo === "frases" ? campo.value.split("\n") : campo.value;
+        });
+        AlmacenPantalla.guardar(crudo);
+        this.datos = normalizarPantalla(crudo);
+        const pat = $("check-patrocinadores").checked;
+        if (pat !== (UI.config.patrocinadores !== false)) {
+            UI.config = { ...UI.config, patrocinadores: pat };
+            AlmacenConfig.guardar(UI.config);
+        }
+        UI.publicar();
+    },
+
+    restablecer() {
+        AlmacenPantalla.restablecer();
+        this.datos = AlmacenPantalla.cargar();
+        UI.config = { ...UI.config, patrocinadores: true };
+        AlmacenConfig.guardar(UI.config);
+        this.llenar(this.datos);
+        $("check-patrocinadores").checked = true;
+        UI.publicar();
     }
 };
 
@@ -781,6 +898,7 @@ function actualizarMenu() {
 
 /** Cambia de pantalla en el panel; fuera del juego el proyector muestra la portada. */
 function irA(destino) {
+    if (destino === "publico") return PantallaPublico.abrir();
     if (destino === "config") return Configuracion.abrir();
     mostrarPantalla(destino);
     if (destino !== "juego" && destino !== "final") {
@@ -839,6 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarConteo();
     actualizarMenu();
     Banco.iniciar();
+    PantallaPublico.iniciar();
 
     // Cuando el proyector se abre (o se recarga) pide el estado actual
     CanalPanel.alConectar = () => UI.publicar();
