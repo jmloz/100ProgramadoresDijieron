@@ -170,7 +170,7 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
 .tabla-respuestas .encabezado,
 .fila-respuesta {
     display: grid;
-    grid-template-columns: 28px 1.4fr 80px 1.6fr;
+    grid-template-columns: 28px 1.4fr 80px 1.6fr 34px;
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
@@ -186,6 +186,17 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 8px 0; border-bottom: 2px dashed var(--panel-2);
 }
+
+.fila-respuesta .btn-mini { padding: 4px 0; }
+.banco-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.banco-filtros { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
+.lista-banco li { flex-wrap: wrap; }
+.lista-banco .banco-texto { flex: 1 1 280px; display: flex; flex-direction: column; gap: 2px; }
+.lista-banco .banco-meta { color: var(--tenue); font-size: .85rem; }
+.lista-banco .banco-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.lista-banco li.inactiva .banco-texto > span:first-child { opacity: .6; text-decoration: line-through; }
+.etiqueta-estado { color: var(--amarillo); font-weight: 700; font-size: .8rem; margin-left: 6px; }
+.etiqueta-estado.mala { color: #ff8f9a; }
 
 .instrucciones { line-height: 1.55; }
 .instrucciones li { margin-bottom: 8px; }
@@ -954,7 +965,8 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
     .equipo-puntos { font-size: 1.6rem; }
     .btn-grande { min-width: 0; width: calc(100% - 8px); }
     .tabla-respuestas .encabezado { display: none; }
-    .fila-respuesta { grid-template-columns: 24px 1fr 70px; }
+    .fila-respuesta { grid-template-columns: 24px 1fr 70px 34px; }
+    .banco-filtros { grid-template-columns: 1fr; }
     .fila-respuesta .r-alias { grid-column: 2 / -1; }
     .fila-2 { grid-template-columns: 1fr; }
     /* Panel en el celular: la barra no se queda fija, ocuparía media pantalla */

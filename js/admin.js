@@ -838,7 +838,7 @@ document.addEventListener("DOMContentLoaded", () => {
     UI.iniciar();
     actualizarConteo();
     actualizarMenu();
-    Editor.iniciar();
+    Banco.iniciar();
 
     // Cuando el proyector se abre (o se recarga) pide el estado actual
     CanalPanel.alConectar = () => UI.publicar();
@@ -858,7 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelectorAll("[data-ir]").forEach(b =>
-        b.addEventListener("click", () => (b.dataset.ir === "agregar" ? Editor.abrir() : irA(b.dataset.ir))));
+        b.addEventListener("click", () => (b.dataset.ir === "banco" ? Banco.abrir() : irA(b.dataset.ir))));
     document.querySelectorAll('[data-accion="pausa"]').forEach(b => b.addEventListener("click", () => UI.alternarPausa()));
     document.querySelectorAll('[data-accion="deshacer"]').forEach(b => b.addEventListener("click", () => UI.deshacer()));
     document.addEventListener("keydown", ev => UI.alPresionarTecla(ev));
