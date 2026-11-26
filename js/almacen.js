@@ -128,6 +128,40 @@ const AlmacenPreguntas = {
         return this.todas().find(p => p.id === id) || null;
     },
 
+    /**
+     * Valida una lista fija de ids (una por ronda) y devuelve las preguntas en ese orden.
+     * @param {string[]} ids
+     * @param {number} necesarias rondas (+ la final si corresponde)
+     * @param {boolean} rondaFinal si la última posición es la ronda final
+     * @returns {{preguntas: object[], errores: string[]}}
+     */
+    resolverLista(ids, necesarias, rondaFinal) {
+        const lista = Array.isArray(ids) ? ids : [];
+        if (lista.length !== necesarias) {
+            return { preguntas: [], errores: [`La lista debe tener ${necesarias} preguntas (tiene ${lista.length}).`] };
+        }
+        const errores = [];
+        const preguntas = [];
+        const vistos = new Set();
+        lista.forEach((id, i) => {
+            const etiqueta = rondaFinal && i === necesarias - 1 ? "ronda final" : `ronda ${i + 1}`;
+            if (id === "" || id == null) {
+                errores.push(`Falta elegir la pregunta de la ${etiqueta}.`);
+                return;
+            }
+            const p = this.porId(id);
+            if (!p) {
+                errores.push(`La pregunta de la ${etiqueta} ya no está disponible (desactivada o borrada).`);
+            } else if (vistos.has(id)) {
+                errores.push(`La pregunta de la ${etiqueta} está repetida.`);
+            } else {
+                preguntas.push(p);
+            }
+            vistos.add(id);
+        });
+        return { preguntas: errores.length ? [] : preguntas, errores };
+    },
+
     /** Agrega una pregunta. Devuelve la lista de errores (vacía si se guardó). */
     agregar(datos) {
         const errores = Pregunta.validarDatos(datos);
@@ -252,6 +286,9 @@ const AlmacenConfig = {
         multiplicadorFinal: 2,
         respuestas: 5,
         maxErrores: 3,
+        // Origen de las preguntas: "azar" o "lista" (listaFija = ids en orden)
+        modoPreguntas: "azar",
+        listaFija: [],
         // Presentación en el proyector
         transicion: "larga",   // "larga" (robot programando), "corta" o "no"
         patrocinadores: true

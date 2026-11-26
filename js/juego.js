@@ -64,6 +64,7 @@ class Juego {
             new Equipo(nombreB || "Equipo B")
         ];
         this.opciones = normalizarOpciones(opciones);
+        this.ordenFijo = !!(opciones && opciones.ordenFijo);   // true = usar el banco en el orden recibido
         this.totalRondas = preguntasNecesarias(this.opciones);
         this.aleatorio = aleatorio;
         this.preguntas = this._elegirPreguntas(bancoDatos, this.totalRondas);
@@ -79,7 +80,7 @@ class Juego {
             throw new Error(`Se necesitan al menos ${cantidad} preguntas válidas para jugar.`);
         }
         const copia = [...bancoDatos];
-        for (let i = copia.length - 1; i > 0; i--) {
+        for (let i = copia.length - 1; i > 0 && !this.ordenFijo; i--) {
             const j = Math.floor(this.aleatorio() * (i + 1));
             [copia[i], copia[j]] = [copia[j], copia[i]];
         }

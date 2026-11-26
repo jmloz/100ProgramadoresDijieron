@@ -93,3 +93,26 @@ test("catalogo() entrega copias de los datos", () => {
     assert.equal(PREGUNTAS_BASE[0].pregunta, original);
     assert.equal(A.catalogo()[0].datos.pregunta, original);
 });
+
+test("resolverLista valida la lista fija", () => {
+    const { AlmacenPreguntas: A } = nuevo();
+    const ok = A.resolverLista(["b01", "b02", "b03", "b04"], 4, true);
+    assert.deepEqual([...ok.errores], []);
+    assert.deepEqual([...ok.preguntas.map(p => p.id)], ["b01", "b02", "b03", "b04"]);
+    A.desactivar("b05");
+    const mal = A.resolverLista(["b01", "", "b01", "b05"], 4, true);
+    assert.deepEqual([...mal.errores], [
+        "Falta elegir la pregunta de la ronda 2.",
+        "La pregunta de la ronda 3 está repetida.",
+        "La pregunta de la ronda final ya no está disponible (desactivada o borrada)."
+    ]);
+    assert.deepEqual([...A.resolverLista(["b01", "b02", "b03"], 4, true).errores],
+        ["La lista debe tener 4 preguntas (tiene 3)."]);
+});
+
+test("AlmacenConfig por defecto trae modo azar y lista vacía", () => {
+    const { AlmacenConfig } = cargar(ARCHIVOS, ["AlmacenConfig"], { almacen: {} });
+    const c = AlmacenConfig.cargar();
+    assert.equal(c.modoPreguntas, "azar");
+    assert.deepEqual([...c.listaFija], []);
+});
