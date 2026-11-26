@@ -988,3 +988,10 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
 /* ---------- Panel: pantalla del público ---------- */
 .publico-bloques { display: grid; gap: 12px; width: min(760px, 100%); }
 .bloque-publico textarea { min-height: 7em; }
+
+/* Lista fija de preguntas en la configuración */
+.lista-fija { display: flex; flex-direction: column; gap: 8px; }
+.lista-fija[hidden] { display: none; }
+.fila-fija { display: flex; align-items: center; gap: 8px; }
+.fila-fija > span { flex: 0 0 6.5em; color: var(--tenue); }
+.fila-fija select { flex: 1; min-width: 0; }

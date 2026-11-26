@@ -52,6 +52,9 @@
         <button class="btn btn-grande" data-ir="banco">☰ Banco de preguntas</button>
         <button class="btn btn-grande" data-ir="publico">🖥 Pantalla del público</button>
         <button class="btn btn-grande" data-ir="instrucciones">? Ver instrucciones</button>
+        <button class="btn btn-grande btn-secundario" id="btn-exportar-prep" title="Descarga tus preguntas, configuración y pantalla del público">⇩ Exportar preparación</button>
+        <button class="btn btn-grande btn-secundario" id="btn-importar-prep" title="Reemplaza tus preguntas, configuración y pantalla del público por las de un archivo">⇧ Importar preparación</button>
+        <input type="file" id="archivo-prep" accept=".json,application/json" hidden>
         <button class="btn btn-grande btn-secundario" id="btn-salir">⏻ Salir</button>
     </nav>
     <p class="nota" id="conteo-preguntas"></p>
@@ -127,15 +130,22 @@
 
         <fieldset>
             <legend>Preguntas</legend>
-            <div class="categorias" id="lista-categorias"></div>
-            <label>Dificultad
-                <select id="dificultad">
-                    <option value="todas">Todas</option>
-                    <option value="facil">Fácil</option>
-                    <option value="media">Media</option>
-                    <option value="dificil">Difícil</option>
-                </select>
-            </label>
+            <div class="categorias">
+                <label class="check"><input type="radio" name="modo-preguntas" value="azar" checked> Al azar</label>
+                <label class="check"><input type="radio" name="modo-preguntas" value="lista"> Lista fija</label>
+            </div>
+            <div id="filtros-azar">
+                <div class="categorias" id="lista-categorias"></div>
+                <label>Dificultad
+                    <select id="dificultad">
+                        <option value="todas">Todas</option>
+                        <option value="facil">Fácil</option>
+                        <option value="media">Media</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                </label>
+            </div>
+            <div id="lista-fija" class="lista-fija" hidden></div>
             <p class="nota" id="conteo-filtro"></p>
         </fieldset>
 

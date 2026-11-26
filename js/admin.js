@@ -100,9 +100,22 @@ const UI = {
     },
 
     iniciarPartida() {
-        const banco = AlmacenPreguntas.filtrar(this.config.categorias, this.config.dificultad);
+        let banco;
+        let opciones = this.config;
+        if (this.config.modoPreguntas === "lista") {
+            const o = normalizarOpciones(this.config);
+            const r = AlmacenPreguntas.resolverLista(this.config.listaFija, preguntasNecesarias(o), o.rondaFinal);
+            if (r.errores.length) {
+                Modal.abrir("No se puede iniciar", r.errores.join(" "), [{ texto: "Aceptar" }]);
+                return;
+            }
+            banco = r.preguntas;
+            opciones = { ...this.config, ordenFijo: true };
+        } else {
+            banco = AlmacenPreguntas.filtrar(this.config.categorias, this.config.dificultad);
+        }
         try {
-            this.juego = new Juego(this.config.nombres[0], this.config.nombres[1], banco, this.config);
+            this.juego = new Juego(this.config.nombres[0], this.config.nombres[1], banco, opciones);
         } catch (e) {
             Modal.abrir("No se puede iniciar", e.message, [{ texto: "Aceptar" }]);
             return;
@@ -679,6 +692,9 @@ const Configuracion = {
         $("op-errores").value = o.maxErrores;
         $("op-transicion").value = ["larga", "corta", "no"].includes(c.transicion) ? c.transicion : "larga";
 
+        this.lista = [...(c.listaFija || [])];
+        this.filasDibujadas = -1;
+        document.querySelector(`input[name="modo-preguntas"][value="${c.modoPreguntas === "lista" ? "lista" : "azar"}"]`).checked = true;
         $("lista-categorias").replaceChildren(...AlmacenPreguntas.categorias().map(cat =>
             el("label", { clase: "check" },
                 Object.assign(el("input", { type: "checkbox", value: cat }),
@@ -705,13 +721,76 @@ const Configuracion = {
         });
     },
 
+    modo() {
+        return document.querySelector('input[name="modo-preguntas"]:checked').value;
+    },
+
+    /** Filas de la lista fija: una por pregunta necesaria; se recortan o rellenan con "" al cambiar las reglas. */
+    dibujarLista(o) {
+        const necesarias = preguntasNecesarias(o);
+        if (this.lista.length !== necesarias) {
+            this.lista = Array.from({ length: necesarias }, (_, i) => this.lista[i] || "");
+        }
+        if (this.filasDibujadas === necesarias) return;
+        this.redibujarLista(o);
+    },
+
+    redibujarLista(o) {
+        const necesarias = preguntasNecesarias(o);
+        const activas = AlmacenPreguntas.todas();
+        this.filasDibujadas = necesarias;
+        $("lista-fija").replaceChildren(...this.lista.map((id, i) => {
+            const etiqueta = o.rondaFinal && i === necesarias - 1 ? "Ronda final" : `Ronda ${i + 1}`;
+            const opciones = [el("option", { value: "", texto: "— elegir —" }),
+                ...activas.map(p => el("option", { value: p.id, texto: `${p.pregunta} (${AlmacenPreguntas.categoriaDe(p)})` }))];
+            if (id && !activas.some(p => p.id === id)) {
+                opciones.push(el("option", { value: id, texto: "⚠ ya no disponible" }));
+            }
+            const select = el("select", { "data-fila": String(i), "aria-label": etiqueta }, ...opciones);
+            select.value = id;
+            const mover = (texto, destino, titulo) => {
+                const b = el("button", {
+                    type: "button", clase: "btn btn-mini btn-secundario", texto, title: titulo,
+                    onclick: () => this.mover(i, destino)
+                });
+                b.disabled = destino < 0 || destino >= necesarias;
+                return b;
+            };
+            return el("div", { clase: "fila-fija" }, el("span", { texto: etiqueta }), select,
+                mover("↑", i - 1, "Subir"), mover("↓", i + 1, "Bajar"));
+        }));
+    },
+
+    mover(de, a) {
+        [this.lista[de], this.lista[a]] = [this.lista[a], this.lista[de]];
+        this.redibujarLista(this.leerOpciones());
+        this.actualizarConteo();
+    },
+
+    /** Un cambio en el formulario: guarda la elección de una fila o ajusta la lista y el conteo. */
+    alCambiar(ev) {
+        const fila = ev && ev.target && ev.target.dataset && ev.target.dataset.fila;
+        if (fila !== undefined) this.lista[Number(fila)] = ev.target.value;
+        this.actualizarConteo();
+    },
+
     actualizarConteo() {
         const o = this.leerOpciones();
         const necesarias = preguntasNecesarias(o);
-        const n = AlmacenPreguntas.filtrar(this.categoriasMarcadas(), $("dificultad").value).length;
+        const enLista = this.modo() === "lista";
+        $("filtros-azar").hidden = enLista;
+        $("lista-fija").hidden = !enLista;
         const nodo = $("conteo-filtro");
-        nodo.textContent = `${n} pregunta(s) disponibles · se necesitan ${necesarias}`;
-        nodo.classList.toggle("insuficiente", n < necesarias);
+        if (enLista) {
+            this.dibujarLista(o);
+            const elegidas = this.lista.filter(id => id).length;
+            nodo.textContent = `${elegidas} de ${necesarias} elegidas`;
+            nodo.classList.toggle("insuficiente", elegidas < necesarias);
+        } else {
+            const n = AlmacenPreguntas.filtrar(this.categoriasMarcadas(), $("dificultad").value).length;
+            nodo.textContent = `${n} pregunta(s) disponibles · se necesitan ${necesarias}`;
+            nodo.classList.toggle("insuficiente", n < necesarias);
+        }
         $("resumen-partida").textContent =
             `Partida de ${necesarias} ${necesarias === 1 ? "pregunta" : "preguntas"}: ` +
             `${o.rondas} ${o.rondas === 1 ? "ronda normal" : "rondas normales"}` +
@@ -735,19 +814,28 @@ const Configuracion = {
         const tiempoTurno = this.leerTiempo("tiempo-turno");
         if (tiempoCara === null || tiempoTurno === null) return error("Los tiempos deben ser enteros entre 0 y 120 segundos.");
 
-        const marcadas = this.categoriasMarcadas();
-        if (!marcadas.length) return error("Elige al menos una categoría.");
-        const todas = AlmacenPreguntas.categorias();
-        const dificultad = $("dificultad").value;
-        const categorias = marcadas.length === todas.length ? null : marcadas; // null = incluye categorías nuevas
         const opciones = this.leerOpciones();
         const necesarias = preguntasNecesarias(opciones);
-        if (AlmacenPreguntas.filtrar(categorias, dificultad).length < necesarias) {
-            return error(`Con ese filtro no alcanzan las preguntas: se necesitan ${necesarias}.`);
+        const modoPreguntas = this.modo();
+        let filtro = {};
+        if (modoPreguntas === "lista") {
+            const r = AlmacenPreguntas.resolverLista(this.lista, necesarias, opciones.rondaFinal);
+            if (r.errores.length) return error(r.errores.join(" "));
+        } else {
+            const marcadas = this.categoriasMarcadas();
+            if (!marcadas.length) return error("Elige al menos una categoría.");
+            const todas = AlmacenPreguntas.categorias();
+            const dificultad = $("dificultad").value;
+            const categorias = marcadas.length === todas.length ? null : marcadas; // null = incluye categorías nuevas
+            if (AlmacenPreguntas.filtrar(categorias, dificultad).length < necesarias) {
+                return error(`Con ese filtro no alcanzan las preguntas: se necesitan ${necesarias}.`);
+            }
+            filtro = { categorias, dificultad };
         }
 
         UI.config = {
-            ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, categorias, dificultad, ...opciones,
+            ...UI.config, nombres: [a, b], tiempoCara, tiempoTurno, ...filtro, ...opciones,
+            modoPreguntas, listaFija: [...this.lista],
             transicion: $("op-transicion").value
         };
         AlmacenConfig.guardar(UI.config);
@@ -875,6 +963,61 @@ const PantallaPublico = {
 };
 
 /* ============================================================
+ *  EXPORTAR / IMPORTAR LA PREPARACIÓN DEL EVENTO (desde el menú)
+ * ============================================================ */
+
+const Intercambio = {
+    exportar() {
+        const blob = new Blob([JSON.stringify(Preparacion.exportar(), null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const enlace = el("a", { href: url, download: "preparacion-100pd.json" });
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        URL.revokeObjectURL(url);
+    },
+
+    async elegirArchivo(input) {
+        const archivo = input.files[0];
+        input.value = "";
+        if (!archivo) return;
+        const aviso = texto => Modal.abrir("Importar preparación", texto, [{ texto: "Aceptar" }]);
+        let datos;
+        try {
+            datos = JSON.parse(await archivo.text());
+        } catch {
+            return aviso("El archivo no es un JSON válido.");
+        }
+        if (!Array.isArray(datos) && !(datos && datos.tipo === Preparacion.TIPO)) {
+            return aviso("El archivo no es una preparación de 100 Programadores Dijeron.");
+        }
+        const mensaje = Array.isArray(datos)
+            ? "Se agregarán las preguntas del archivo al banco."
+            : "Esto reemplaza tus preguntas, configuración y pantalla actuales.";
+        Modal.abrir("Importar preparación", mensaje, [
+            { texto: "Importar", clase: "btn-error", accion: () => this.aplicar(datos, aviso) },
+            { texto: "Cancelar", clase: "btn-secundario" }
+        ]);
+    },
+
+    aplicar(datos, aviso) {
+        let r;
+        try {
+            r = Preparacion.importar(datos);
+        } catch (e) {
+            return aviso(e.message);
+        }
+        UI.config = AlmacenConfig.cargar();
+        PantallaPublico.datos = AlmacenPantalla.cargar();
+        actualizarConteo();
+        UI.publicar();
+        aviso(r.preguntasIgnoradas
+            ? `Listo. Se ignoraron ${r.preguntasIgnoradas} pregunta(s) inválida(s).`
+            : "Listo: la preparación se importó.");
+    }
+};
+
+/* ============================================================
  *  ARRANQUE: menú, navegación y conexión con el proyector
  * ============================================================ */
 
@@ -984,7 +1127,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("keydown", ev => UI.alPresionarTecla(ev));
 
     $("form-config").addEventListener("submit", ev => { ev.preventDefault(); Configuracion.enviar(); });
-    $("form-config").addEventListener("change", () => Configuracion.actualizarConteo());
+    $("form-config").addEventListener("change", ev => Configuracion.alCambiar(ev));
+    $("btn-exportar-prep").addEventListener("click", () => Intercambio.exportar());
+    $("btn-importar-prep").addEventListener("click", () => $("archivo-prep").click());
+    $("archivo-prep").addEventListener("change", ev => Intercambio.elegirArchivo(ev.target));
 
     $("btn-continuar").addEventListener("click", () => {
         const guardada = AlmacenPartida.cargar();

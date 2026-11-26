@@ -43,8 +43,20 @@ const AlmacenPreguntas = {
         return JSON.parse(JSON.stringify(x));
     },
 
+    _secuenciaId: 0,
+
+    /** Id único: tiempo + azar + contador (varios ids en el mismo milisegundo no chocan) y que no esté en uso. */
     _idNuevo() {
-        return "p-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const crudo = Guardado.leer(this.CLAVE, []);
+        const usados = new Set([...PREGUNTAS_BASE.map(b => b.id),
+            ...(Array.isArray(crudo) ? crudo.map(p => p && p.id) : [])]);
+        let id;
+        do {
+            this._secuenciaId++;
+            id = "p-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) +
+                this._secuenciaId.toString(36);
+        } while (usados.has(id));
+        return id;
     },
 
     /** Personalizadas guardadas; a las que no tienen id se les asigna uno y se guarda la lista (una sola vez). */
@@ -313,11 +325,70 @@ const AlmacenConfig = {
 
     cargar() {
         const guardada = Guardado.leer(this.CLAVE, {});
-        return { ...this.POR_DEFECTO, ...(guardada && typeof guardada === "object" ? guardada : {}) };
+        const config = { ...this.POR_DEFECTO, ...(guardada && typeof guardada === "object" ? guardada : {}) };
+        config.listaFija = Array.isArray(config.listaFija) ? [...config.listaFija] : [];   // nunca la del POR_DEFECTO
+        return config;
     },
 
     guardar(config) {
         Guardado.escribir(this.CLAVE, config);
+    }
+};
+
+/** Toda la preparación del evento (banco, configuración y pantalla del público) en un solo archivo. */
+const Preparacion = {
+    TIPO: "100pd-preparacion",
+
+    exportar() {
+        const { nombres, ...config } = AlmacenConfig.cargar();
+        return {
+            tipo: this.TIPO,
+            version: 1,
+            exportadoEn: new Date().toISOString(),
+            personalizadas: AlmacenPreguntas.personalizadas(),
+            cambios: AlmacenPreguntas._cambios(),
+            config,
+            pantalla: AlmacenPantalla.cargar()
+        };
+    },
+
+    /** Reemplaza todo con lo del archivo (o suma preguntas si es el formato viejo, un arreglo). */
+    importar(obj) {
+        if (Array.isArray(obj)) return { preguntasIgnoradas: AlmacenPreguntas.importar(obj).rechazadas };
+        if (!obj || typeof obj !== "object" || obj.tipo !== this.TIPO) {
+            throw new Error("El archivo no es una preparación de 100 Programadores Dijeron.");
+        }
+        const A = AlmacenPreguntas;
+        const entrantes = Array.isArray(obj.personalizadas) ? obj.personalizadas : [];
+        const usados = new Set(PREGUNTAS_BASE.map(b => b.id));
+        const validas = [];
+        for (const p of entrantes) {
+            if (!p || typeof p !== "object" || Pregunta.validarDatos(p).length) continue;
+            let id = typeof p.id === "string" && p.id && !usados.has(p.id) ? p.id : null;
+            if (!id) {
+                do { id = A._idNuevo(); } while (usados.has(id));
+            }
+            usados.add(id);
+            validas.push({ ...A._copia(p), id });
+        }
+        A._guardarLista(validas);
+
+        // Los cambios pasan por la misma limpieza de ids que el resto del almacén.
+        Guardado.escribir(A.CLAVE_CAMBIOS, obj.cambios && typeof obj.cambios === "object" ? obj.cambios : {});
+        A._guardarCambios(A._cambios());
+
+        const nombres = AlmacenConfig.cargar().nombres;
+        const config = { ...AlmacenConfig.POR_DEFECTO, ...(obj.config && typeof obj.config === "object" ? obj.config : {}) };
+        if (nombres) config.nombres = nombres; else delete config.nombres;
+        const existentes = A.categorias();
+        const cats = Array.isArray(config.categorias) ? config.categorias.filter(c => existentes.includes(c)) : [];
+        config.categorias = cats.length ? cats : null;
+        config.listaFija = Array.isArray(config.listaFija) ? config.listaFija.filter(x => typeof x === "string") : [];
+        if (config.modoPreguntas !== "lista") config.modoPreguntas = "azar";
+        AlmacenConfig.guardar(config);
+
+        AlmacenPantalla.guardar(obj.pantalla);
+        return { preguntasIgnoradas: entrantes.length - validas.length };
     }
 };
 
