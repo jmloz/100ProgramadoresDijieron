@@ -170,7 +170,7 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
 .tabla-respuestas .encabezado,
 .fila-respuesta {
     display: grid;
-    grid-template-columns: 28px 1.4fr 80px 1.6fr;
+    grid-template-columns: 28px 1.4fr 80px 1.6fr 34px;
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
@@ -186,6 +186,17 @@ label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 8px 0; border-bottom: 2px dashed var(--panel-2);
 }
+
+.fila-respuesta .btn-mini { padding: 4px 0; }
+.banco-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.banco-filtros { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
+.lista-banco li { flex-wrap: wrap; }
+.lista-banco .banco-texto { flex: 1 1 280px; display: flex; flex-direction: column; gap: 2px; }
+.lista-banco .banco-meta { color: var(--tenue); font-size: .85rem; }
+.lista-banco .banco-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.lista-banco li.inactiva .banco-texto > span:first-child { opacity: .6; text-decoration: line-through; }
+.etiqueta-estado { color: var(--amarillo); font-weight: 700; font-size: .8rem; margin-left: 6px; }
+.etiqueta-estado.mala { color: #ff8f9a; }
 
 .instrucciones { line-height: 1.55; }
 .instrucciones li { margin-bottom: 8px; }
@@ -443,6 +454,9 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqw;
     margin: 0; text-align: center;
 }
+/* Sin el robot: el título deja de flotar sobre la imagen y ocupa su propio lugar, como un letrero solo */
+.letrero-portada.sin-robot { background: #0b1030; box-shadow: var(--marco), 0 8px 0 0 var(--sombra); padding: 3cqw 0; }
+.letrero-portada.sin-robot .letrero-texto { position: static; height: auto; }
 .letrero .logo-ascii { font-size: 3cqw; }
 .letrero .logo-texto { font-size: 5.6cqw; margin: 0; line-height: 1.35; }
 
@@ -506,6 +520,14 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     padding: 4px 8px; margin: 4px;
     box-shadow: var(--marco);
 }
+.modo-proyector [hidden] { display: none !important; }   /* "Pantalla del público": los elementos ocultos no deben recuperarse por reglas de display */
+.lema-proxy, .globo, .creditos p {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.lema-proxy, .creditos p {
+    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .lema-proxy { font-family: var(--fuente-juego); font-weight: 700; color: #7fd0e2; margin: 0; font-size: 1.2rem; }
 .marcador-marca {
     display: flex; align-items: center; gap: 8px;
@@ -537,6 +559,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
     padding: 10px 16px; margin: 0;
     box-shadow: var(--marco), 0 6px 0 0 var(--sombra);
 }
+.portada-centro:has(.sin-robot) .globo { left: 103%; top: 50%; transform: translateY(-50%); }
 .globo::before {   /* piquito del globo, apuntando al robot */
     content: ""; position: absolute; left: -16px; top: 16px;
     border: 8px solid transparent; border-right: 10px solid var(--crema);
@@ -683,6 +706,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--amarillo); }
 .sin-patrocinadores .tira-patrocinadores,
 .sin-patrocinadores .transicion-patrocinadores,
 .sin-patrocinadores .creditos .logos-patrocinadores { display: none; }
+.sin-patrocinadores .creditos.sin-texto { display: none; }
 .sin-patrocinadores #pantalla-espera { padding-bottom: 2vh; }
 
 /* Lluvia de festejo encima del tablero */
@@ -954,7 +978,8 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
     .equipo-puntos { font-size: 1.6rem; }
     .btn-grande { min-width: 0; width: calc(100% - 8px); }
     .tabla-respuestas .encabezado { display: none; }
-    .fila-respuesta { grid-template-columns: 24px 1fr 70px; }
+    .fila-respuesta { grid-template-columns: 24px 1fr 70px 34px; }
+    .banco-filtros { grid-template-columns: 1fr; }
     .fila-respuesta .r-alias { grid-column: 2 / -1; }
     .fila-2 { grid-template-columns: 1fr; }
     /* Panel en el celular: la barra no se queda fija, ocuparía media pantalla */
@@ -964,3 +989,14 @@ html[data-tema="claro"] .x-grande { background: #f3f6fed9; }
 @media (pointer: coarse) {
     .btn kbd, .atajos { display: none; }
 }
+
+/* ---------- Panel: pantalla del público ---------- */
+.publico-bloques { display: grid; gap: 12px; width: min(760px, 100%); }
+.bloque-publico textarea { min-height: 7em; }
+
+/* Lista fija de preguntas en la configuración */
+.lista-fija { display: flex; flex-direction: column; gap: 8px; }
+.lista-fija[hidden] { display: none; }
+.fila-fija { display: flex; align-items: center; gap: 8px; }
+.fila-fija > span { flex: 0 0 6.5em; color: var(--tenue); }
+.fila-fija select { flex: 1; min-width: 0; }

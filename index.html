@@ -49,8 +49,12 @@
         <button class="btn btn-grande" id="btn-continuar" hidden>⏯ Continuar partida</button>
         <p class="nota info-continuar" id="info-continuar" hidden></p>
         <button class="btn btn-grande" data-ir="config">▶ Jugar</button>
-        <button class="btn btn-grande" data-ir="agregar">＋ Agregar pregunta</button>
+        <button class="btn btn-grande" data-ir="banco">☰ Banco de preguntas</button>
+        <button class="btn btn-grande" data-ir="publico">🖥 Pantalla del público</button>
         <button class="btn btn-grande" data-ir="instrucciones">? Ver instrucciones</button>
+        <button class="btn btn-grande btn-secundario" id="btn-exportar-prep" title="Descarga tus preguntas, configuración y pantalla del público">⇩ Exportar preparación</button>
+        <button class="btn btn-grande btn-secundario" id="btn-importar-prep" title="Reemplaza tus preguntas, configuración y pantalla del público por las de un archivo">⇧ Importar preparación</button>
+        <input type="file" id="archivo-prep" accept=".json,application/json" hidden>
         <button class="btn btn-grande btn-secundario" id="btn-salir">⏻ Salir</button>
     </nav>
     <p class="nota" id="conteo-preguntas"></p>
@@ -110,8 +114,6 @@
                     <option value="no">Sin animación</option>
                 </select>
             </label>
-            <label class="check"><input type="checkbox" id="op-patrocinadores" checked>
-                Mostrar patrocinadores (portada, entre rondas y al final)</label>
         </fieldset>
 
         <fieldset>
@@ -128,15 +130,22 @@
 
         <fieldset>
             <legend>Preguntas</legend>
-            <div class="categorias" id="lista-categorias"></div>
-            <label>Dificultad
-                <select id="dificultad">
-                    <option value="todas">Todas</option>
-                    <option value="facil">Fácil</option>
-                    <option value="media">Media</option>
-                    <option value="dificil">Difícil</option>
-                </select>
-            </label>
+            <div class="categorias">
+                <label class="check"><input type="radio" name="modo-preguntas" value="azar" checked> Al azar</label>
+                <label class="check"><input type="radio" name="modo-preguntas" value="lista"> Lista fija</label>
+            </div>
+            <div id="filtros-azar">
+                <div class="categorias" id="lista-categorias"></div>
+                <label>Dificultad
+                    <select id="dificultad">
+                        <option value="todas">Todas</option>
+                        <option value="facil">Fácil</option>
+                        <option value="media">Media</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                </label>
+            </div>
+            <div id="lista-fija" class="lista-fija" hidden></div>
             <p class="nota" id="conteo-filtro"></p>
         </fieldset>
 
@@ -209,49 +218,81 @@
 </section>
 
 <!-- ==================== AGREGAR PREGUNTA ==================== -->
-<section id="pantalla-agregar" class="pantalla">
-    <h2>Agregar pregunta</h2>
-    <form id="form-agregar" class="tarjeta form-agregar">
+<section id="pantalla-banco" class="pantalla">
+    <h2>Banco de preguntas</h2>
+    <p class="ok-form" id="ok-banco" role="status"></p>
+    <form id="form-banco" class="tarjeta form-agregar" hidden>
+        <h3 id="titulo-form-banco">Nueva pregunta</h3>
         <label>Pregunta
-            <input id="nueva-pregunta" maxlength="140" placeholder='Ej. "Algo que se rompe un viernes a las 5 pm"'>
+            <input id="banco-pregunta" maxlength="140" placeholder='Ej. "Algo que se rompe un viernes a las 5 pm"'>
         </label>
         <div class="fila-2">
             <label>Categoría
-                <input id="nueva-categoria" maxlength="40" list="categorias-existentes" placeholder="Ej. Programación">
+                <input id="banco-categoria" maxlength="40" list="categorias-existentes" placeholder="Ej. Programación">
                 <datalist id="categorias-existentes"></datalist>
             </label>
             <label>Dificultad
-                <select id="nueva-dificultad">
+                <select id="banco-dificultad">
                     <option value="facil">Fácil</option>
                     <option value="media" selected>Media</option>
                     <option value="dificil">Difícil</option>
                 </select>
             </label>
         </div>
-        <p class="nota">5 respuestas. Puntos enteros; la suma no debe pasar de 100.
+        <p class="nota">De 5 a 8 respuestas. Puntos enteros; la suma no debe pasar de 100.
             Sinónimos separados por comas (opcional).</p>
+        <p class="nota" id="nota-tablero"></p>
         <div class="tabla-respuestas">
-            <div class="encabezado"><span>#</span><span>Respuesta</span><span>Puntos</span><span>Sinónimos</span></div>
+            <div class="encabezado"><span>#</span><span>Respuesta</span><span>Puntos</span><span>Sinónimos</span><span></span></div>
             <div id="filas-respuestas"></div>
         </div>
-        <p class="suma">Suma: <strong id="suma-puntos">0</strong> / 100</p>
-        <p class="error-form" id="error-agregar"></p>
-        <p class="ok-form" id="ok-agregar"></p>
+        <button type="button" class="btn btn-mini" id="btn-mas-respuesta">＋ Respuesta</button>
+        <p class="suma" id="suma-banco">Suma: <strong id="suma-puntos">0</strong> / 100</p>
+        <p class="error-form" id="error-banco"></p>
         <div class="fila-botones">
-            <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+            <button type="button" class="btn btn-secundario" id="btn-cancelar-banco">Cancelar</button>
             <button type="submit" class="btn">Guardar pregunta</button>
         </div>
     </form>
 
     <div class="tarjeta">
-        <h3>Preguntas agregadas por ti</h3>
-        <ul id="lista-personalizadas" class="lista-personalizadas"></ul>
-        <div class="fila-botones">
-            <button type="button" class="btn btn-mini" id="btn-exportar">Exportar JSON</button>
-            <label class="btn btn-mini">Importar JSON
-                <input type="file" id="input-importar" accept=".json,application/json" hidden>
-            </label>
+        <div class="banco-cabecera">
+            <h3 id="banco-conteo"></h3>
+            <button type="button" class="btn btn-mini" id="btn-nueva-pregunta">＋ Nueva pregunta</button>
         </div>
+        <div class="banco-filtros">
+            <input id="banco-buscar" type="search" placeholder="Buscar en preguntas y respuestas" aria-label="Buscar">
+            <select id="banco-f-categoria" aria-label="Categoría"></select>
+            <select id="banco-f-dificultad" aria-label="Dificultad">
+                <option value="">Todas las dificultades</option>
+                <option value="facil">Fácil</option>
+                <option value="media">Media</option>
+                <option value="dificil">Difícil</option>
+            </select>
+            <select id="banco-f-estado" aria-label="Estado">
+                <option value="todas">Todas</option>
+                <option value="originales">Originales</option>
+                <option value="editadas">Editadas</option>
+                <option value="tuyas">Tuyas</option>
+                <option value="desactivadas">Desactivadas</option>
+                <option value="borradas">Borradas</option>
+            </select>
+        </div>
+        <ul id="banco-lista" class="lista-personalizadas lista-banco"></ul>
+        <div class="fila-botones">
+            <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== PANTALLA DEL PÚBLICO ==================== -->
+<section id="pantalla-publico" class="pantalla">
+    <h2>Pantalla del público</h2>
+    <p class="nota">Elige qué se ve en el proyector y edita sus textos. Los cambios se guardan y se aplican al momento.</p>
+    <div id="publico-bloques" class="publico-bloques"></div>
+    <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" data-ir="menu">← Menú</button>
+        <button type="button" class="btn btn-error" id="btn-publico-restablecer">Restablecer valores originales</button>
     </div>
 </section>
 
@@ -334,6 +375,7 @@
 
 <!-- Orden importante: cada archivo usa lo definido en los anteriores -->
 <script src="js/dom.js"></script>
+<script src="js/pantalla.js"></script>
 <script src="js/canal.js"></script>
 <script src="js/preguntas.js"></script>
 <script src="js/validador.js"></script>

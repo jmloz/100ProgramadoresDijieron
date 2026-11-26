@@ -62,7 +62,7 @@ El proyector detecta que está dentro de OBS: oculta el aviso de "arrastra esta 
   el número en las direcciones del panel y de la fuente de OBS (la ventana negra muestra las correctas).
   También se puede dar sin que pregunte: `iniciar-servidor.bat 8200`.
 - Las preguntas agregadas y la configuración se guardan por dirección: las de `index.html` abierto con doble
-  clic no aparecen en `http://localhost:8100/`. Pásalas con *Exportar JSON* / *Importar JSON*.
+  clic no aparecen en `http://localhost:8100/`. Pásalas con *Exportar preparación* / *Importar preparación* (menú).
 - **Alternativa sin servidor:** abre el proyector en Chrome con el botón ▣ y en OBS agrega una fuente
   *Captura de ventana* de esa ventana (método de captura "Windows 10 (1903 y posterior)").
 
@@ -90,7 +90,7 @@ Si el celular no carga la página:
 ## Estructura
 
 ```
-index.html          PANEL DEL MODERADOR: menú, configuración, controles, tarjeta de respuestas, editor
+index.html          PANEL DEL MODERADOR: menú, configuración, controles, tarjeta de respuestas, banco y pantalla del público
 proyector.html      PANTALLA DEL PÚBLICO: tablero, marcador, errores y ganador (sin controles)
 css/estilos.css     Tema visual de ambas ventanas: juego indie pixel art con los colores del Congreso PROXY
 fonts/              Fuentes locales (Chakra Petch, Press Start 2P, IBM Plex Mono; licencia OFL): no necesita internet
@@ -100,16 +100,19 @@ js/canal.js         Comunicación panel <-> proyector (postMessage + BroadcastCh
 servidor-obs.ps1    Servidor local para usar el proyector como Fuente de navegador en OBS
 iniciar-servidor.bat  Lo inicia con doble clic (solo esta computadora)
 iniciar-servidor-red.bat  Lo inicia para abrir el panel desde el celular (misma red)
-js/preguntas.js     BANCO DE PREGUNTAS (aquí se agregan preguntas fijas)
+js/preguntas.js     BANCO BASE: preguntas fijas del proyecto (cada una con su id)
 js/validador.js     Normaliza y compara respuestas (acentos, mayúsculas, sinónimos, errores de dedo)
 js/modelos.js       Clases Respuesta, Pregunta y Equipo
 js/juego.js         Clase Juego: reglas y fases de la ronda (sin nada de interfaz)
-js/almacen.js       Lo que se guarda en el navegador: preguntas agregadas, configuración y partida en curso
+js/almacen.js       Lo que se guarda en el navegador: banco (preguntas propias y cambios a las base), configuración,
+                    pantalla del público, lista fija y partida en curso
 js/sonidos.js       Efectos chiptune (8 bits): inicio, acierto, error, revelar, ronda, ganador, tic y fin de tiempo
 js/temporizador.js  Cuenta regresiva con pausa (la usa el panel)
-js/editor.js        Pantalla "Agregar pregunta"
+js/editor.js        Pantalla "Banco de preguntas": lista, búsqueda, editar, duplicar, desactivar, borrar y restaurar
 js/admin.js         Panel: conecta los controles con Juego y envía el estado al proyector
 js/proyector.js     Proyector: dibuja el estado que recibe del panel
+js/pantalla.js       Pantalla del público: valores por defecto, límites de texto y normalización
+tests/               Pruebas automáticas (`node --test tests/`)
 ```
 
 ## Tema visual (Congreso PROXY 2026)
@@ -140,12 +143,11 @@ Al presionar **▶ Jugar** se eligen:
 - **Reglas:** rondas normales (1 a 8, una pregunta cada una), ronda final (x2, x3 o sin final), respuestas en el
   tablero (3 a 8; si una pregunta tiene menos, se muestran las que tenga) y errores para perder el control (1 a 5).
 - **Presentación:** animación entre rondas (larga: el robot "programa" la ronda en su laptop y luego muestra el
-  letrero, ~10 s; corta: solo el letrero, ~4 s; o sin animación) y si se muestran los patrocinadores.
+  letrero, ~10 s; corta: solo el letrero, ~4 s; o sin animación). Los patrocinadores se controlan en *Pantalla del público*.
 - **Tiempo para responder** en el cara a cara y en los turnos/robo (0 = sin tiempo). Si se acaba, cuenta
   como error. El tiempo se ve en ambas ventanas, suena un tic en los últimos 5 segundos y se pausa solo
   mientras el moderador decide una respuesta dudosa.
-- **Categorías** (Programación, Lenguajes, Vida estudiantil, Cultura dev y las que agregues) y **dificultad**.
-  El juego avisa si con ese filtro no alcanzan las 4 preguntas de una partida.
+- **Preguntas:** al azar (con las **categorías** —Programación, Lenguajes, Vida estudiantil, Cultura dev y las que agregues— y la **dificultad**) o **lista fija**, eligiendo cada pregunta. Ver *Preguntas de la partida*.
 
 La configuración se recuerda para la siguiente vez.
 
@@ -165,7 +167,7 @@ La configuración se recuerda para la siguiente vez.
 
 ## Reglas implementadas
 
-- 2 equipos, 3 rondas normales + 1 ronda final (puntos x2). Preguntas al azar y sin repetir.
+- 2 equipos, 3 rondas normales + 1 ronda final (puntos x2). Preguntas al azar y sin repetir, o la lista fija que elijas.
 - **Cara a cara:** el moderador marca quién presionó primero. La respuesta #1 gana el control de inmediato;
   si no, responde el otro equipo y gana quien tenga la respuesta con más puntos. Si los dos fallan, pasan
   otros dos representantes.
@@ -184,16 +186,95 @@ La configuración se recuerda para la siguiente vez.
 | `pues buscar en google`  | **Dudosa**: contiene una respuesta; el moderador confirma         |
 | `pizza`                  | No coincide: el moderador confirma el error o la acepta manualmente |
 
-## Cómo agregar preguntas
+## Banco de preguntas
 
-**Opción 1 — Desde el juego:** menú → *Agregar pregunta*. Se guardan en el navegador
-(`localStorage`). Con *Exportar JSON* / *Importar JSON* las pasas a otra computadora.
+Desde el menú → **☰ Banco de preguntas** ves todas las preguntas: las base de `js/preguntas.js` y las que
+agregaste en el panel. Arriba aparece el conteo; con la búsqueda (texto de la pregunta o de las respuestas)
+y los filtros de categoría, dificultad y estado encuentras cualquiera.
 
-**Opción 2 — En el código (permanente):** abre `js/preguntas.js` y agrega un bloque dentro del arreglo
-`PREGUNTAS_BASE` (no olvides la coma entre bloques):
+Cada pregunta muestra una etiqueta de estado (las base sin cambios no llevan ninguna):
+
+| Etiqueta | Significado |
+|----------|-------------|
+| *(ninguna)* | Pregunta base sin cambios |
+| **Editada** | Pregunta base con cambios hechos en el panel |
+| **Tuya** | Pregunta agregada desde el panel |
+| **Desactivada** | No sale en las partidas, pero sigue en el banco |
+| **Borrada** | Pregunta base borrada (solo se ve con el filtro *Borradas*) |
+
+Acciones por pregunta:
+
+- **Editar:** cambia pregunta, categoría, dificultad, respuestas, puntos y sinónimos.
+- **Duplicar:** abre el formulario con una copia (*"(copia)"* al final) que se guarda como pregunta tuya nueva.
+- **Desactivar / Activar:** la quita o la vuelve a poner en el juego sin borrarla.
+- **Borrar:** pide confirmación. Borrar una pregunta **base** es reversible (**Restaurar original**);
+  borrar una **tuya** es definitivo.
+- **Restaurar original:** deshace las ediciones de una base o la vuelve a poner si estaba borrada. Si su
+  texto ya lo usa otra pregunta, no se restaura y el aviso lo indica.
+
+Reglas del formulario: de **5 a 8 respuestas**, puntos enteros positivos y suma máxima de **100** (la suma
+se va calculando mientras escribes). En el tablero solo salen las N respuestas con más puntos, donde N es
+la cantidad de respuestas configurada en la partida. No puede haber dos preguntas con el mismo texto.
+
+Los cambios a preguntas base se guardan en el navegador, **no** modifican `js/preguntas.js`, y las preguntas
+que agregues al archivo más adelante siguen apareciendo solas. Las partidas guardadas no se afectan.
+
+## Preguntas de la partida
+
+En **▶ Jugar**, la sección *Preguntas* elige cómo se llenan las rondas:
+
+- **Al azar** (por defecto): el juego saca preguntas de las categorías y la dificultad que elijas, sin repetir.
+  Avisa si con ese filtro no alcanzan las preguntas que necesita la partida.
+- **Lista fija:** tú eliges la pregunta de cada ronda, en orden. Hay una casilla por ronda normal y una
+  para la ronda final. Cada casilla es una lista desplegable con las preguntas activas; con ↑ y ↓ cambias
+  el orden, y «— elegir —» deja la casilla vacía. Los filtros de categoría y dificultad se ocultan en este modo.
+  Antes de iniciar, el juego revisa que no haya casillas vacías, preguntas repetidas ni preguntas que ya
+  estén desactivadas o borradas, y te dice cuál es el problema. Si cambias el número de rondas, la lista se
+  recorta o agrega casillas vacías.
+
+## Pantalla del público
+
+Desde el menú → **🖥 Pantalla del público** configuras lo que se ve en el proyector. Los cambios se aplican
+al momento, así que puedes verlos en el proyector mientras preparas el evento.
+
+- **Mostrar u ocultar** cada elemento: banner de marca, texto de arranque tipo BIOS, robot con letrero,
+  globo del robot, lema, cuenta regresiva, prompt de espera, marca del marcador, logo de la laptop y
+  créditos de la pantalla final. El título del juego se queda visible aunque ocultes el robot.
+- **Textos editables:** las tres líneas del banner (texto superior, principal y edición), las frases del
+  globo (una por línea; vacío = sin globo), el lema, el prompt de espera, la marca del marcador y los créditos.
+- **Límites de largo:** banner y marca del marcador 20 letras; lema y prompt 60; cada frase del globo 80
+  (máximo 20 frases); créditos 200.
+- **Patrocinadores:** la casilla *Mostrar* está aquí. Es todo
+  o nada: se muestran en la portada, entre rondas y al final.
+- **Restablecer valores originales** devuelve todo lo de esta pantalla a los valores por defecto. No toca
+  el banco de preguntas.
+
+## Preparar un evento
+
+Para reutilizar el juego en otro evento, prepara todo en un solo archivo:
+
+1. En el menú, **⇩ Exportar preparación** descarga `preparacion-100pd.json` con tus preguntas propias, los
+   cambios al banco, la configuración de la partida y la pantalla del público. **No** incluye los nombres de
+   los equipos, porque cambian en cada partida.
+2. En la otra computadora, **⇧ Importar preparación** pide confirmación y **reemplaza** lo que haya en esa
+   computadora: preguntas propias, cambios al banco, configuración y pantalla del público. Los nombres de
+   los equipos se conservan. Las preguntas no válidas se omiten y el aviso dice cuántas.
+3. Los archivos del formato anterior (un arreglo de preguntas, como los de la versión vieja) también se
+   pueden importar: en ese caso las preguntas se **suman** a las que ya tienes.
+
+Las preguntas base siempre vienen de `js/preguntas.js` del mismo proyecto, así que la otra computadora debe
+tener la misma versión del juego.
+
+## Agregar preguntas al código (permanente)
+
+Para que una pregunta forme parte del proyecto, abre `js/preguntas.js` y agrega un bloque dentro del arreglo
+`PREGUNTAS_BASE` (no olvides la coma entre bloques). Cada pregunta necesita un **`id`** único y fijo, con la
+siguiente letra y número libres (`b28`, `b29`…). No lo cambies ni lo reutilices: las ediciones del banco se
+guardan por ese id.
 
 ```js
     {
+        id: "b28",
         categoria: "Programación",
         dificultad: "media",
         pregunta: "Algo que se rompe un viernes a las 5 de la tarde",
@@ -207,8 +288,19 @@ La configuración se recuerda para la siguiente vez.
     },
 ```
 
-Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. En el tablero solo salen las **5 más
-populares** (`RESPUESTAS_POR_RONDA` en `js/modelos.js`); las demás no cuentan. `categoria` es libre (si la omites
+Reglas: de 5 a 8 respuestas, puntos enteros positivos, suma máxima 100. En el tablero salen las más
+populares: **5 por defecto**, configurable de 3 a 8 en la pantalla de configuración (`RESPUESTAS_POR_RONDA` en `js/modelos.js` es el valor por defecto); las demás no cuentan. `categoria` es libre (si la omites
 queda en "General") y `dificultad` puede ser `"facil"`, `"media"` o `"dificil"` (por defecto `"media"`). El orden no importa
 (el juego las ordena por puntaje). Si una pregunta tiene errores, el juego la ignora y lo avisa en la
 consola del navegador (F12).
+
+## Pruebas
+
+El proyecto tiene pruebas automáticas de la lógica del juego (banco, almacén, pantalla del público, juego y
+preparación de eventos), sin dependencias. Con **Node.js 20 o superior** y desde la carpeta del proyecto:
+
+```bash
+node --test tests/
+```
+
+Deben salir todas en verde. Las pruebas no revisan la interfaz: los cambios visuales se revisan en el navegador.
